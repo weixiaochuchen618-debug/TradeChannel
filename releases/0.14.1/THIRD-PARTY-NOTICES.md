@@ -1,0 +1,12 @@
+# Third-party components
+
+This preview is named TradeChannel and is not an official WireGuard or sing-box product.
+
+- **sing-box 1.14.2**, revision `af6e64c3b69e6132ebaee0e1a3d24e93903f6709`, official Windows amd64 distribution. Bundled executable SHA256: `7BBEF1DEA9189EE12799AE834EA4B4658355DA25C47A21AD8804904C0CCD9410`. GPL-3.0-or-later and upstream naming restriction; see `assets/sing-box.LICENSE.txt` and `assets/GPL-3.0.txt`. Source and dependency/build definitions: <https://github.com/SagerNet/sing-box/tree/af6e64c3b69e6132ebaee0e1a3d24e93903f6709>. Official release: <https://github.com/SagerNet/sing-box/releases/tag/v1.14.2>.
+- **wg.exe**, the WireGuard command-line configuration/key utility from the already installed, validly signed WireGuard LLC Windows distribution. SHA256: `E1F8CB5C9E30A878FA7EB0B2251BB4EB4946E669063E6FD5E4383CA4BD0DCAF2`. GPL-2.0; see `assets/GPL-2.0.txt`. Source: <https://git.zx2c4.com/wireguard-tools/>. Windows distribution and build source: <https://git.zx2c4.com/wireguard-windows/>.
+- **wireguard-installer.exe**, the unmodified official WireGuard LLC signed Windows bootstrap installer supplied by the user. SHA256: `6962B6F42BC442E2A822608817222C93C7EF03F34476337608B170D4D76FD5F3`; 86,664 bytes. Bundled for the server setup option; it downloads the full components when run and is not an offline MSI. Official download: <https://download.wireguard.com/windows-client/wireguard-installer.exe>. GPL-2.0; see `assets/GPL-2.0.txt` and Windows source <https://git.zx2c4.com/wireguard-windows/>.
+- Windows PowerShell 5.1, .NET Framework, WPF and Windows Forms (tray icon/folder picker) are supplied by Windows and are not redistributed in this archive.
+
+TradeChannel PowerShell and C# source files and the launcher manifest are included with the preview. The archive is a local evaluation artifact, not a signed public release. Public redistribution must include corresponding source/build material and notices required by the bundled licenses; do not treat these source links alone as a completed public distribution compliance review.
+
+Linux TCP 部署可按用户确认的计划下载固定官方 sing-box 1.14.2 Linux amd64 发行物，下载前后按固定 SHA256 验证；许可同随包 sing-box。官方发行页：https://github.com/SagerNet/sing-box/releases/tag/v1.14.2

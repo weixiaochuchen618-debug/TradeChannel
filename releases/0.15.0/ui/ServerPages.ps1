@@ -1,0 +1,476 @@
+﻿# Server management is a separate SSH management session, never a local activation.
+# Secrets stay in GUI memory/secure pipe. Smoke captures intentions, no connections.
+function ServerUIGet {param($Value,[string]$Name,$Default=$null)
+ if($Value -is [Collections.IDictionary]){if($Value.Contains($Name)){return $Value[$Name]}}
+ elseif($null -ne $Value -and $Value.PSObject.Properties[$Name]){return $Value.$Name};return $Default
+}
+function ServerUIReadOnly {$flag=Get-Variable -Name ReadOnly -Scope Script -ErrorAction SilentlyContinue;return ($flag -and [bool]$flag.Value)}
+function UIProductPath {param([string]$Leaf) return Join-Path (Split-Path $PSScriptRoot -Parent) $Leaf}
+function ManagementLabel {param([string]$Value)
+ $labels=@{Applied='已部署';Uninstalled='服务已卸载';NotInstalled='尚未部署';OwnedNotInstalled='部署未完成';NeedsRecovery='需要恢复';AwaitIdentityVerification='等待身份核验';Unverified='尚未核验';Managed='已识别归属';Authenticated='管理账户已验证';NeedsAuthentication='需要管理登录';ConnectorOnly='仅有连接使用权';Authorized='已授权';Revoked='已撤销';Inactive='服务未启用';Open='待使用';Consumed='已使用';Cancelled='已取消';Expired='已过期';Prepared='已准备';Dispatched='已提交';Running='处理中';OutcomeUnknown='结果待核对';AuthorizedReturnPending='已授权，等待交接';Completed='已完成';Complete='已完成';Rejected='未执行成功';Failed='需要处理';WaitingUser='等待继续';ReadyInactive='已准备，尚未启用';MaterializeCandidate='准备本机线路';ProbeCandidate='验证候选线路';Inspect='检查环境';PrepareAccess='准备登录';PlanReady='等待核对变更';ApplyOrAuthorize='部署或授权';ServerInfo='读取服务器状态';Devices='读取设备';Authenticate='管理登录';InviteCreate='生成邀请';InviteCancel='取消邀请';AuthorizeExternal='授权新电脑';TransportPlan='准备连接方式预览';TransportApply='添加连接方式';ReconcileServer='核对服务器结果';ReconcileInvite='核对原邀请';ReconcilePairInvite='核对原申请';ReconcileDevices='核对设备状态';Recover='恢复未完成操作';Rename='更新设备名称';Revoke='撤销指定设备';Uninstall='卸载自有服务';management_apply='启用管理能力';device_rename='更新设备名称';invite_create='生成邀请';invite_cancel='取消邀请';authorize_external='授权新电脑';transport_apply='添加连接方式';request_status='查询原申请'}
+ $labels.Archived='重装前身份已归档';$labels.ReinstallObserve='只读核验新 SSH 身份';$labels.ReinstallTrust='等待核对新指纹';$labels.ReinstallAuthenticate='认证已确认的新指纹';$labels.ReinstallConfirm='建立新的管理记录'
+ if($labels.ContainsKey($Value)){return $labels[$Value]};return '需要核对'
+}
+function ManagementDetails {param($Parent,[string]$Text,[string]$Title='技术详情')
+ $expand=New-Object Windows.Controls.Expander;$expand.Header=$Title;$expand.Margin='0,8,0,0';$expand.IsExpanded=$false;$expand.Content=T $Text 11.5 $script:Text3;AddC $Parent $expand;return $expand
+}
+function ManagementTime {param($Value)try{return ([DateTimeOffset]::Parse([string]$Value)).LocalDateTime.ToString('MM-dd HH:mm')}catch{return '时间未知'}}
+function ServerErrorText {param([string]$Code)
+ switch($Code){
+  'MissingManagementDependency'{'服务器缺少 OpenSSL。管理查询没有自动安装；请在明确的组件准备阶段安装发行版 openssl 后重新预览。'}
+  'PlanExpired'{'预览已过期。请重新检查并生成预览，原设备申请保留。'}
+  'RevisionConflict'{'服务器配置在预览后发生变化。请刷新设备和服务器，再核对新的变更。'}
+  'ApprovalMismatch'{'批准摘要与目标或配置修订不匹配，请重新预览。'}
+  'InviteUnavailable'{'邀请已取消或过期，请由管理端重新生成邀请。'}
+  'InviteConsumed'{'邀请已被其他申请消费。请核对原申请和设备列表，不要重复新增设备。'}
+  'InvalidSignature'{'交接签名不匹配，请重新复制原邀请或原申请，核对来源。'}
+  'NeedsRecovery'{'服务器有未完成事务，请使用「检查与恢复事务」核对实际结果，再继续。'}
+  'TransportAlreadyEnabled'{'此服务器已配置 TCP。新增向导只处理 UDP 增加 TCP，不覆盖现有 TCP 认证和参数。'}
+  'NodeUninstalled'{'服务器服务已卸载，保留的台账和身份不代表服务仍可连接。'}
+  'AuthorizationConflict'{'这份申请、设备或密钥已注册或已撤销，请查询原申请结果或按新身份流程处理。'}
+  'AddressPoolExhausted'{'没有空闲设备地址。已退役地址不会自动复用，需要管理员安排网段维护。'}
+  default{'服务器未完成此操作。请保留原资料并核对实际状态，具体原因可展开技术详情。'}
+ }
+}
+function InitializeServerUI {
+ if(-not $script:DeployUI.Management){$script:DeployUI.Management=@{ServerId=$null;Server=$null;Info=$null;SessionRef=$null;Credential=$null;Authenticated=$false;TrustShown=$null;LastPoll=[DateTime]::MinValue;Error='';Input=@{DeviceName='新电脑';TcpPort='443';ServerName='www.bing.com';RenameId='';RenameName='';KeyPath=''};Preview=$null;InviteHistory=@()}}
+}
+function ManagementMutation {param([string]$Operation,$InputData)
+ return ($Operation -in @('management_apply','device_rename','invite_create','invite_cancel','authorize_external','revoke','uninstall','transport_apply','recover') -or ($Operation -eq 'request_status' -and (ServerUIGet $InputData RefreshAuthorization $false)))
+}
+function ManagementIntentDirectory {return Join-Path (Join-Path $script:Root 'deployments') 'management-intents'}
+function SaveManagementIntent {param($Intent)
+ if($script:Smoke){return}
+ Import-Module (UIProductPath 'DeploymentStore.psm1') -DisableNameChecking
+ $id=Assert-TCDId $Intent.OperationId;$Intent.UpdatedAtUtc=[DateTime]::UtcNow.ToString('o')
+ Write-TCDJson (Join-Path (ManagementIntentDirectory) ($id+'.json')) $Intent
+}
+function NewManagementIntent {param([string]$Operation,[hashtable]$InputData,[string]$Purpose)
+ $allowed=@{
+  management_apply=@('PlanId','ApprovedChangeDigest');device_rename=@('DeviceId','Name','ExpectedConfigRevision');invite_create=@('InviteId','DeviceName','ExpiresInHours');invite_cancel=@('InviteId');
+  authorize_external=@('InviteId','PairRequest');revoke=@('DeviceId','ExpectedConfigRevision','ApprovedChangeDigest');uninstall=@('ExpectedConfigRevision','ApprovedChangeDigest');transport_apply=@('PlanId','ApprovedChangeDigest');recover=@();request_status=@('RequestId','RequestDigest','IncludeTelemetry','RefreshAuthorization')
+ }
+ if(-not $allowed.ContainsKey($Operation)){throw '此动作不属于受支持的管理变更。'}
+ foreach($key in $InputData.Keys){if($key -cnotin $allowed[$Operation]){throw '管理意图包含未支持字段，未保存或发送。'}}
+ $m=$script:DeployUI.Management
+ $intent=[pscustomobject]@{SchemaVersion=1;Kind='TradeChannel.ManagementIntent';OperationId=[guid]::NewGuid().ToString('D');ServerRecordId=$m.ServerId;
+  ServerBinding=@{RemoteOwnerId=(ServerUIGet $m.Info RemoteOwnerId);NodeId=(ServerUIGet (ServerUIGet $m.Info Node) NodeId);ServerPublicKey=(ServerUIGet (ServerUIGet $m.Info Node) ServerPublicKey)};
+  Operation=$Operation;Purpose=$Purpose;Input=$InputData.Clone();State='Prepared';CreatedAtUtc=[DateTime]::UtcNow.ToString('o');UpdatedAtUtc=[DateTime]::UtcNow.ToString('o');ResultCode=$null}
+ SaveManagementIntent $intent;return $intent
+}
+function RestoreManagementIntent {
+ $m=$script:DeployUI.Management;if($script:Smoke){return}
+ $directory=ManagementIntentDirectory;if(-not [IO.Directory]::Exists($directory)){return}
+ Import-Module (UIProductPath 'DeploymentStore.psm1') -DisableNameChecking
+ $unknown=@(Get-ChildItem -LiteralPath $directory -Filter '*.json'|ForEach-Object {
+  try{$i=Read-TCDJson $_.FullName;if($i.SchemaVersion -eq 1 -and $i.Kind -ceq 'TradeChannel.ManagementIntent' -and $i.ServerRecordId -eq $m.ServerId -and $i.State -in @('Prepared','Dispatched','OutcomeUnknown','NeedsRecovery','AuthorizedReturnPending')){$i}}catch{}
+ }|Sort-Object UpdatedAtUtc -Descending)
+ if($unknown.Count){$m.UnresolvedIntent=$unknown[0]}
+}
+function SetManagementIntentOutcome {param($Pending,[string]$State,[string]$Code='')
+ $intent=ServerUIGet $Pending Intent
+ if(-not $intent){return};$intent.State=$State;$intent.ResultCode=$Code;SaveManagementIntent $intent
+ $m=$script:DeployUI.Management
+ if($State -in @('OutcomeUnknown','NeedsRecovery','AuthorizedReturnPending')){$m.UnresolvedIntent=$intent}
+ elseif((ServerUIGet $m UnresolvedIntent) -and $m.UnresolvedIntent.OperationId -eq $intent.OperationId){$m.UnresolvedIntent=$null}
+}
+function ReconcileManagementIntentUI {
+ $m=$script:DeployUI.Management;$intent=ServerUIGet $m UnresolvedIntent
+ if(-not $intent){return}
+ if($intent.Operation -in @('invite_create','invite_cancel')){StartServerOperation invite_status @{InviteId=$intent.Input.InviteId} ReconcileInvite;return}
+ if($intent.Operation -eq 'authorize_external'){
+  if($script:Smoke){return}
+  Import-Module (UIProductPath 'DeploymentPairing.psm1') -DisableNameChecking
+  $info=Get-TCPairRequestInfo -PairRequest $intent.Input.PairRequest;$script:DeployUI.PairRequest=$intent.Input.PairRequest;$script:DeployUI.PairRequestInspection=$info
+  InitializePairingUI;$script:DeployUI.PairFields.RequestText=$intent.Input.PairRequest
+  StartServerOperation invite_status @{InviteId=$intent.Input.InviteId} ReconcilePairInvite;return
+ }
+ if($intent.Operation -in @('revoke','device_rename')){StartServerOperation devices @{Offset=0;Limit=100;IncludeRevoked=$true} ReconcileDevices;return}
+ StartServerOperation server_info @{} ReconcileServer
+}
+function ResolveManagementIntentUI {
+ $m=$script:DeployUI.Management;$intent=ServerUIGet $m UnresolvedIntent
+ if(-not $intent){return}
+ OpenDialog '已核对这次管理操作的真实结果？' ('动作：'+(ManagementLabel $intent.Operation)+'。此按钮只解除本机的重复提交阻止，不改变服务器。') '未完成远端事务仍必须恢复。下一次变更需重新生成预览；授权始终复用原申请。' '结果已核对，解除本机阻止' {
+  $m=$script:DeployUI.Management;$intent=$m.UnresolvedIntent;$intent.State='ReconciledByUser';SaveManagementIntent $intent;$m.UnresolvedIntent=$null;ShowServerManagement
+ }
+}
+function LoadServersUI {
+ $script:DeployUI.ServerDiscoveryAttempted=$true;$script:DeployUI.ServersLoading=$true
+ StartJob @{Action='DeploymentDiscover'} {param($d)$script:DeployUI.ServersLoading=$false;$script:DeployUI.Discovery=$d;if($script:Role -in @('servers','devices')){ShowServerManagement}} '读取服务器台账…' '' -Silent -Failed {param($message)$script:DeployUI.ServersLoading=$false;InitializeServerUI;$script:DeployUI.Management.Error='台账暂时无法读取，请点击刷新重试。';if($script:Role -in @('servers','devices')){ShowServerManagement}}
+}
+function SelectServerUI {param([string]$ServerId)
+ InitializeServerUI
+ if($script:DeployUI.PendingManagement){ErrorDialog '请等当前服务器操作完成；结果未知时先核对原操作。';return}
+ if((ServerUIGet $script:DeployUI.Management ReinstallStage) -and $script:DeployUI.Management.ServerId -cne $ServerId){ErrorDialog '请先退出这次重装身份核验，再选择其他服务器。';return}
+ if($script:DeployUI.Run -and $script:DeployUI.Run.Status -eq 'Running'){ErrorDialog '部署正在执行，请完成或核对该操作后再打开管理会话。';return}
+ $server=@(ServerUIGet $script:DeployUI.Discovery Servers @()|Where-Object {$_.LocalRecordId -eq $ServerId})|Select-Object -First 1
+ if(-not $server){ErrorDialog '服务器记录不存在，请刷新台账。';return}
+ if((ServerUIGet $server RecordState 'Active') -ceq 'Archived'){ErrorDialog '此身份已归档，请选择重装后新建的服务器记录。';return}
+ if($script:DeployUI.Management.ServerId -ne $ServerId){
+  $old=$script:DeployUI.Management.SessionRef
+  if($old -and -not $script:Smoke){try{Import-Module (UIProductPath 'DeploymentTransport.psm1') -DisableNameChecking;$null=Stop-TCDeploySession $old}catch{}}
+  $script:DeployUI.Management=$null;InitializeServerUI;$script:DeployUI.DeviceResult=$null;$script:DeployUI.Invite=$null
+ }
+ $script:DeployUI.Management.ServerId=$ServerId;$script:DeployUI.Management.Server=$server;$script:DeployUI.ServerId=$ServerId
+ RestoreManagementIntent
+ $script:DeployUI.ManagementMode=$true;$script:Role='servers';ShowServerManagement
+}
+function ServerField {param($Parent,[string]$Label,[string]$Id,[string]$Key,[string]$Hint='',[switch]$Multiline)
+ $box=DeploymentField $Parent $Label $Id ([string]$script:DeployUI.Management.Input[$Key]) $Hint -Multiline:$Multiline
+ $box.Tag=$Key;$box.Add_TextChanged({$script:DeployUI.Management.Input[[string]$this.Tag]=$this.Text});return $box
+}
+function ConnectServerUI {
+ if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未启动服务器管理登录。';return}
+ InitializeServerUI;$m=$script:DeployUI.Management
+ if(ServerUIGet $m ReinstallStage){ConnectServerReinstallUI;return}
+ if((ServerUIGet $m.Server RecordState 'Active') -ceq 'Archived'){ErrorDialog '原身份已归档，请选择重装后的新记录。';return}
+ if(-not $m.Server -or -not $m.Server.Connection){ErrorDialog '邀请只授予连接使用权。管理服务器需要真实 SSH 管理资料。';return}
+ if($script:Smoke){StartJob @{Action='ManagementSessionFixture';ServerId=$m.ServerId} {param($d)$script:DeployUI.Management.SessionRef=$d.SessionRef;$script:DeployUI.SessionRef=$d.SessionRef;$script:DeployUI.Management.Authenticated=$true;StartServerOperation server_info @{} ServerInfo} '测试管理认证';return}
+ try{
+  Import-Module (UIProductPath 'DeploymentTransport.psm1') -DisableNameChecking
+  Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking
+  $m.Server=Get-TCServer -Root $script:Root -Id $m.ServerId
+  $key=[string]$script:Controls.ServerKeyPath.Text;$secret=$script:Controls.ServerPassword.SecurePassword
+  if(-not $key -and $secret.Length -eq 0 -and (ServerUIGet $script:DeployUI RecoveryRecordId '') -eq $m.ServerId -and (ServerUIGet $script:DeployUI RecoveredCredential)){
+   $credential=$script:DeployUI.RecoveredCredential
+  }elseif((ServerUIGet $m UseSavedCredential $false) -and (ServerUIGet $m.Server CredentialRef '')){
+   $credential=Get-TCDeploySavedCredential -Root $script:Root -CredentialRef ([string]$m.Server.CredentialRef)
+  }elseif($key){
+   if(-not [IO.File]::Exists($key) -or (Get-Item -LiteralPath $key).Length -gt 1MB){throw 'SSH 私钥文件不存在或超过 1 MiB。'}
+   $pem=[IO.File]::ReadAllText($key,[Text.Encoding]::UTF8)
+   $credential=@{Kind='PrivateKey';PrivateKeyPem=(ConvertTo-SecureString $pem -AsPlainText -Force);Passphrase=$secret};$pem=$null
+  }else{$credential=@{Kind='Password';Password=$secret}}
+  $m.Credential=$credential;$m.Authenticated=$false;$m.TrustShown=$null;$m.Error=''
+  $started=Start-TCDeploySession -Root $script:Root -RunId ([guid]::NewGuid().ToString('D')) -Connection $m.Server.Connection -Credential $credential -PinnedFingerprint ([string](ServerUIGet $m.Server PinnedHostKey ''))
+  $m.SessionRef=$started.SessionRef;$script:DeployUI.SessionRef=$started.SessionRef;$script:DeployUI.SessionAttached=$true
+  $script:DeployUI.PendingManagement=@{Purpose='Authenticate';Operation='';OperationId='';ServerId=$m.ServerId};ShowServerManagement
+ }catch{$m.Credential=$null;$m.Error=$_.Exception.Message;ErrorDialog $m.Error}
+}
+function ResetServerReinstallUI {param([string]$Message='已退出重装核验，原记录保留。')
+ $m=$script:DeployUI.Management
+ $m.ReinstallStage=$null;$m.ReinstallVerificationToken=$null;$m.ReinstallPreview=$null;$m.ReinstallApprovalToken=$null;$m.Credential=$null;$m.SessionRef=$null;$m.Authenticated=$false;$m.TrustShown=$null;$m.Info=$null;$m.Input.KeyPath=''
+ $script:DeployUI.PendingManagement=$null;$script:DeployUI.SessionRef=$null;$script:DeployUI.SessionAttached=$false;$script:DeployUI.Credential=$null;$script:DeployUI.RecoveredCredential=$null;$script:DeployUI.DeviceResult=$null;$m.Error=$Message
+ # Detach only. No process is stopped and no previous deployment is resumed.
+ ShowServerManagement
+}
+function BeginServerReinstallUI {
+ if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未启动服务器身份核验。';return}
+ InitializeServerUI;$m=$script:DeployUI.Management
+ if($script:DeployUI.PendingManagement){ErrorDialog '当前管理动作尚未完成，请先核对结果。';return}
+ if(-not $m.Server -or -not $m.Server.Connection -or -not (ServerUIGet $m.Server PinnedHostKey) -or (ServerUIGet $m.Server RecordState 'Active') -ceq 'Archived'){ErrorDialog '请选择仍有效且已固定 SSH 指纹的服务器记录。';return}
+ OpenDialog '这台服务器已重装？' ('目标：'+$m.Server.Name+' · '+$m.Server.Connection.Host+':'+$m.Server.Connection.Port) '下一步重新输入管理凭据，只读核验新 SSH 身份。核对新指纹并明确确认后，建立新记录，原身份和任务归档保留；设备密钥、授权和已保存密码均不导入。当前线路保持。' '服务器已重装，开始核验' {
+  param($context)
+  $m=$script:DeployUI.Management
+  if($m.ServerId -cne $context.ServerId -or $script:DeployUI.PendingManagement){ErrorDialog '选择的服务器已变化，请重新进入重装核验。';return}
+  ResetServerReinstallUI '';$m.ReinstallStage='NeedsCredentials';$m.UseSavedCredential=$false;$script:DeployUI.Invite=$null;ShowServerManagement
+ } '取消' 'Primary' @{ServerId=$m.ServerId}
+}
+function ConnectServerReinstallUI {
+ if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未启动服务器身份核验。';return}
+ $m=$script:DeployUI.Management
+ if($m.ReinstallStage -cne 'NeedsCredentials' -or $script:DeployUI.PendingManagement){ErrorDialog '新身份核验正在进行，请等待或退出本次核验。';return}
+ if($script:Smoke){
+  $script:DeployUI.PendingManagement=@{Purpose='ReinstallObserve';ServerId=$m.ServerId}
+  StartJob @{Action='ServerReinstallVerificationFixture';ServerId=$m.ServerId;DeclaredReinstalled=$true} {param($d)$m=$script:DeployUI.Management;$m.SessionRef=$d.SessionRef;$m.ReinstallVerificationToken=$d.VerificationToken;$m.ReinstallStage='Observing'} '测试重装只读身份核验';return
+ }
+ try{
+  Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking
+  $key=[string]$script:Controls.ServerKeyPath.Text;$secret=$script:Controls.ServerPassword.SecurePassword
+  if($key){
+   if(-not [IO.File]::Exists($key) -or (Get-Item -LiteralPath $key).Length -gt 1MB){throw 'SSH 私钥文件不存在或超过 1 MiB。'}
+   $pem=[IO.File]::ReadAllText($key,[Text.Encoding]::UTF8);$credential=@{Kind='PrivateKey';PrivateKeyPem=(ConvertTo-SecureString $pem -AsPlainText -Force);Passphrase=$secret};$pem=$null
+  }else{if($secret.Length -eq 0){throw '重装核验需要重新输入管理密码或明确选择 SSH 私钥，不使用旧保存凭据。'};$credential=@{Kind='Password';Password=$secret}}
+  $started=Start-TCServerReinstallVerification -Root $script:Root -ServerId $m.ServerId -Credential $credential -DeclaredReinstalled
+  $m.Credential=$credential;$m.SessionRef=$started.SessionRef;$m.ReinstallVerificationToken=$started.VerificationToken;$m.ReinstallStage='Observing';$m.Error='';$m.Authenticated=$false
+  $script:DeployUI.SessionRef=$started.SessionRef;$script:DeployUI.SessionAttached=$false;$script:DeployUI.PendingManagement=@{Purpose='ReinstallObserve';ServerId=$m.ServerId};ShowServerManagement
+ }catch{ResetServerReinstallUI $_.Exception.Message;ErrorDialog $_.Exception.Message}
+}
+function ShowServerReinstallTrustUI {
+ if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未确认新的 SSH 身份。';return}
+ $m=$script:DeployUI.Management;$preview=$m.ReinstallPreview
+ if(-not $preview -or $m.ReinstallStage -cne 'AwaitingTrust'){return}
+ OpenDialog '核对重装后的新 SSH 指纹' ('目标：'+$preview.Connection.Host+':'+$preview.Connection.Port+"`n原指纹："+$preview.PreviousFingerprint+"`n新指纹："+$preview.NewFingerprint) '请与云控制台等可信来源核对新指纹。确认后只用这枚指纹认证并建立新管理记录；原记录、旧任务和资料保留为历史，旧授权不能续接。不会自动部署、重启服务或切换线路。' '已核对新指纹，建立新管理记录' {
+  param($context)
+  if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未确认新的 SSH 身份。';return}
+  $m=$script:DeployUI.Management;$preview=$m.ReinstallPreview
+  if($m.ServerId -cne $context.ServerId -or -not $preview -or $preview.PreviewToken -cne $context.PreviewToken -or $m.ReinstallStage -cne 'AwaitingTrust'){ErrorDialog '目标或核验预览已变化，请重新核验。';return}
+  try{
+   if($script:Smoke){$m.ReinstallApprovalToken='fixture-approval'}else{
+    Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking
+    $approved=Approve-TCServerReinstallFingerprint -Root $script:Root -ServerId $m.ServerId -SessionRef $m.SessionRef -PreviewToken $preview.PreviewToken -ConfirmedFingerprint $context.Fingerprint -Credential $m.Credential
+    $m.ReinstallApprovalToken=$approved.ApprovalToken
+   }
+   $m.Credential=$null;$m.ReinstallStage='Authenticating';$script:DeployUI.PendingManagement=@{Purpose='ReinstallAuthenticate';ServerId=$m.ServerId};ShowServerManagement
+  }catch{ResetServerReinstallUI $_.Exception.Message;ErrorDialog $_.Exception.Message}
+ } '取消' 'Primary' @{ServerId=$m.ServerId;PreviewToken=$preview.PreviewToken;Fingerprint=$preview.NewFingerprint}
+}
+function PollServerReinstallUI {param($Poll)
+ if(ServerUIReadOnly){ResetServerReinstallUI '当前是只读检查窗口，已退出身份核验；原记录保留。';return}
+ $m=$script:DeployUI.Management
+ if($m.ReinstallStage -in @('Previewing','AwaitingTrust','Committing','NeedsCredentials')){return}
+ if($m.ReinstallStage -ceq 'Observing' -and $Poll.Code -ceq 'HostTrustRequired'){
+  $m.ReinstallStage='Previewing';$script:DeployUI.PendingManagement=@{Purpose='ReinstallTrust';ServerId=$m.ServerId}
+  StartJob @{Action='ServerReinstallPreview';ServerId=$m.ServerId;SessionRef=$m.SessionRef;VerificationToken=$m.ReinstallVerificationToken} {
+   param($d)
+   $m=$script:DeployUI.Management;$m.ReinstallPreview=$d;$m.ReinstallStage='AwaitingTrust';$script:DeployUI.PendingManagement=$null;ShowServerManagement;ShowServerReinstallTrustUI
+  } '准备新身份核验预览…' '' -Failed {param($message)ResetServerReinstallUI $message;ErrorDialog $message}
+  return
+ }
+ if($m.ReinstallStage -ceq 'Authenticating' -and $Poll.HasSession -and $Poll.Code -ceq 'Authenticated'){
+  $preview=$m.ReinstallPreview;$m.ReinstallStage='Committing';$script:DeployUI.PendingManagement=@{Purpose='ReinstallConfirm';ServerId=$m.ServerId}
+  StartJob @{Action='ServerReinstallConfirm';ServerId=$m.ServerId;SessionRef=$m.SessionRef;ApprovalToken=$m.ReinstallApprovalToken;ConfirmedFingerprint=$preview.NewFingerprint;ApprovedChangeDigest=$preview.ChangeDigest} {
+   param($d)
+   $m=$script:DeployUI.Management;$previous=$m.ServerId
+   $m.ServerId=$d.Server.LocalRecordId;$m.Server=$d.Server;$m.Info=$null;$m.Authenticated=$true;$m.Error='新管理记录已建立。设备授权尚未建立；新的部署需创建新的设备身份。';$m.UnresolvedIntent=$null;$m.Preview=$null;$m.InviteHistory=@();$m.InviteFingerprint=$null;$m.Input.RenameId='';$m.Input.RenameName=''
+   $m.ReinstallStage=$null;$m.ReinstallVerificationToken=$null;$m.ReinstallPreview=$null;$m.ReinstallApprovalToken=$null;$m.Credential=$null;$script:DeployUI.PendingManagement=$null;$script:DeployUI.ServerId=$m.ServerId;$script:DeployUI.Server=$d.Server;$script:DeployUI.DeviceResult=$null;$script:DeployUI.Invite=$null
+   $script:DeployUI.PairRequest=$null;$script:DeployUI.PairRequestInspection=$null;$script:DeployUI.EnrollmentId=$null;$script:DeployUI.PairFields=$null;$script:DeployUI.InviteFromServer=$false
+   if($script:DeployUI.Run -and (ServerUIGet $script:DeployUI.Run ServerRecordId '') -ceq $previous){$script:DeployUI.Run=$null;$script:DeployUI.SessionAttached=$false}
+   LoadServersUI;ShowServerManagement
+  } '建立新管理记录，保留原身份和任务…' '' -Failed {param($message)ResetServerReinstallUI $message;ErrorDialog $message}
+  return
+ }
+ if($Poll.Status -in @('Running','Connecting','AwaitingCredential')){return}
+ if($Poll.Code -ceq 'HostKeyChanged'){ResetServerReinstallUI '核验时新指纹再次变化，已阻断。请重新核对可信来源；原记录保留。';return}
+ ResetServerReinstallUI '未完成新 SSH 身份认证，原记录保留。请重新输入凭据并核验。'
+}
+function StartServerOperation {param([string]$Operation,[hashtable]$InputData=@{},[string]$Purpose='')
+ if(ServerUIReadOnly){ErrorDialog '当前是只读检查窗口，未执行远端管理操作。';return}
+ InitializeServerUI;$m=$script:DeployUI.Management;if(-not $Purpose){$Purpose=$Operation}
+ if((ServerUIGet $m ReinstallStage) -or (ServerUIGet $m.Server RecordState 'Active') -ceq 'Archived'){ErrorDialog '重装核验期间仅核对 SSH 身份；归档记录不能续接管理动作。';return}
+ if($script:DeployUI.PendingManagement){ErrorDialog '当前操作尚未完成，请先核对结果。';return}
+ $mutation=ManagementMutation $Operation $InputData
+ if($mutation -and (ServerUIGet $m UnresolvedIntent) -and $Operation -notin @('recover','request_status')){ErrorDialog '上次管理变更结果尚未核对。请先查询原操作，未重复发送。';return}
+ if($Operation -eq 'invite_create' -and -not $InputData.ContainsKey('InviteId')){$InputData.InviteId=[guid]::NewGuid().ToString('D')}
+ $intent=$null
+ if($script:Smoke){
+  $script:DeployUI.PendingManagement=@{Operation=$Operation;Purpose=$Purpose;ServerId=$m.ServerId;InputData=$InputData;OperationId='fixture'}
+  StartJob @{Action='ServerOperation';ServerId=$m.ServerId;Operation=$Operation;Input=$InputData} {param($d)CompleteServerOperation $d} '测试服务器动作';return
+ }
+ $lease=$null
+ try{
+  if(-not $m.Authenticated -or -not $m.SessionRef){throw '请先在当前服务器卡片登录管理账户。'}
+  Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking
+  $lease=Open-TCServerTaskLease -Root $script:Root -ServerId $m.ServerId
+  Import-Module (UIProductPath 'DeploymentTransport.psm1') -DisableNameChecking
+  if($mutation){$intent=NewManagementIntent $Operation $InputData $Purpose}
+  $arguments=@{SessionRef=$m.SessionRef;Operation=$Operation;Input=$InputData};if($intent){$arguments.OperationId=$intent.OperationId}
+  $started=Invoke-TCDeployOperation @arguments
+  if(-not $started.Ok){throw '服务器操作未被接受。'}
+  if($intent){$intent.State='Dispatched';SaveManagementIntent $intent}
+  $script:DeployUI.PendingManagement=@{Operation=$Operation;Purpose=$Purpose;ServerId=$m.ServerId;InputData=$InputData;OperationId=$started.OperationId;Intent=$intent}
+  $m.Error='';if($script:Role -in @('servers','devices')){ShowServerManagement}
+ }catch{if($intent){$intent.State='OutcomeUnknown';SaveManagementIntent $intent;$m.UnresolvedIntent=$intent};$m.Error='无法确认管理操作是否被接受，请重新登录后先查询原申请或服务器状态。';$m.Authenticated=$false;$m.Credential=$null;if($script:Role -in @('servers','devices')){ShowServerManagement};ErrorDialog $m.Error}finally{if($lease){$lease.Dispose()}}
+}
+function PollServerOperation {param($Poll=$null)
+ InitializeServerUI;$m=$script:DeployUI.Management
+ if($script:Smoke -or -not $m.SessionRef -or ((Get-Date)-$m.LastPoll).TotalSeconds -lt 2){return};$m.LastPoll=Get-Date
+ try{
+  Import-Module (UIProductPath 'DeploymentTransport.psm1') -DisableNameChecking
+  if(-not $Poll){$Poll=Get-TCDeploySession -SessionRef $m.SessionRef}
+  if(ServerUIGet $m ReinstallStage){PollServerReinstallUI $Poll;return}
+  if($Poll.Code -eq 'HostTrustRequired'){
+   if($m.TrustShown -ne $Poll.ObservedFingerprint){$m.TrustShown=$Poll.ObservedFingerprint
+    OpenDialog '核对这台服务器的 SSH 身份' ('服务器：'+$m.Server.Name+"`n指纹："+$m.TrustShown) '请与云控制台等可信来源核对。已知指纹变化会阻断，不自动删除旧信任。' '已核对并信任' {
+     $m=$script:DeployUI.Management
+     try{$null=Set-TCDeployCredential -SessionRef $m.SessionRef -Connection $m.Server.Connection -Credential $m.Credential -PinnedFingerprint $m.TrustShown}catch{$m.Credential=$null;ErrorDialog $_.Exception.Message}
+    }
+   };return
+  }
+  if($Poll.Code -eq 'HostKeyChanged'){$m.Credential=$null;$script:DeployUI.RecoveredCredential=$null;$m.Authenticated=$false;$script:DeployUI.PendingManagement=$null;$m.Error='SSH 主机身份发生变化。请核对目标；确认已重装时，使用“服务器已重装，重新核验身份”入口。';ShowServerManagement;return}
+  if($Poll.HasSession -and -not $m.Authenticated){
+   $m.Authenticated=$true;$m.Credential=$null;$script:DeployUI.RecoveredCredential=$null
+   if($Poll.ObservedFingerprint -and -not $script:Smoke){Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking;$m.Server=Set-TCServerRecord -Root $script:Root -Id $m.ServerId -PinnedFingerprint $Poll.ObservedFingerprint -SessionRef $m.SessionRef}
+   $script:DeployUI.PendingManagement=$null;StartServerOperation server_info @{} ServerInfo;return
+  }
+  if(-not $script:DeployUI.PendingManagement){return}
+  if($Poll.Status -in @('Running','Connecting','AwaitingCredential')){return}
+  $pending=$script:DeployUI.PendingManagement
+  if($Poll.OperationId -and $pending.OperationId -and $Poll.OperationId -cne $pending.OperationId){throw '执行器返回不属于当前操作，已停止自动续接。'}
+  if($Poll.Status -ne 'Completed'){
+   $m.ErrorCode=[string]$Poll.Code
+   SetManagementIntentOutcome $pending $(if($Poll.Status -eq 'OutcomeUnknown'){'OutcomeUnknown'}elseif($Poll.Code -eq 'NeedsRecovery'){'NeedsRecovery'}else{'Rejected'}) ([string]$Poll.Code)
+   $script:DeployUI.PendingManagement=$null;$m.Error=if($Poll.Status -eq 'OutcomeUnknown'){'无法确认服务器变更是否完成；重新登录后先查看状态或恢复事务，不要重复授权。'}else{ServerErrorText ([string]$Poll.Code)}
+   if(-not $Poll.HasSession){$m.Authenticated=$false;$m.Credential=$null};ShowServerManagement;return
+  }
+  CompleteServerOperation $Poll.Data
+ }catch{
+  if(ServerUIGet $m ReinstallStage){ResetServerReinstallUI '无法核对独立 SSH 核验会话，原记录保留。请重新核验。';return}
+  SetManagementIntentOutcome $script:DeployUI.PendingManagement OutcomeUnknown;$script:DeployUI.PendingManagement=$null;$m.Credential=$null;$m.Authenticated=$false;$m.Error='无法核对服务器结果，请重新认证并查看原操作。';ShowServerManagement
+ }
+}
+function ServerHasPotentialSession {return ((IsRunning) -or [bool](ServerUIGet $script:Overview SessionPresent $false) -or [bool](ServerUIGet $script:Overview Running $false) -or ([string](ServerUIGet $script:Overview StateKey '') -in @('Fault','Connecting','Applying','Disconnecting') -and [bool](ServerUIGet $script:Overview ManifestPath '')))}
+function ServerDeviceInUse {param([string]$PublicKey)
+ if(-not (ServerHasPotentialSession)){return $false}
+ if($script:Smoke){return ([string](ServerUIGet $script:DeployUI ActiveClientPublicKey '') -ceq $PublicKey)}
+ try{
+  Import-Module (UIProductPath 'DeploymentStore.psm1') -DisableNameChecking
+  $path=[string](ServerUIGet $script:Overview ManifestPath '')
+  if($path){$manifest=Read-TCDJson $path;return ([string](ServerUIGet $manifest ClientPublicKey '') -ceq $PublicKey)}
+ }catch{}
+ return (ServerCurrentlyInUse)
+}
+function ImportLegacyServersUI {
+ StartJob @{Action='ServerImportLegacy'} {param($d)LoadServersUI;Toast '历史记录已登记，服务器身份仍需登录核验'} '登记历史服务器记录，不修改旧任务或当前连接…'
+}
+function ServerCurrentlyInUse {
+ if(-not (ServerHasPotentialSession)){return $false};$m=$script:DeployUI.Management
+ if(@($m.Server.LinkedNodeIds) -contains (ActiveNodeId)){return $true}
+ if($script:Smoke){return ([bool](ServerUIGet $script:DeployUI UnknownActiveIdentity $false))}
+ try{
+  Import-Module (UIProductPath 'DeploymentStore.psm1') -DisableNameChecking
+  $path=[string](ServerUIGet $script:Overview ManifestPath '')
+  if($path){$manifest=Read-TCDJson $path;$public=[string](ServerUIGet $manifest ServerPublicKey '');$target=[string](ServerUIGet (ServerUIGet $m.Info Node) ServerPublicKey (ServerUIGet $m.Server ServerPublicKey ''));if($public -and $target){return ($public -ceq $target)}}
+ }catch{}
+ return $true # A possible session with unknown binding cannot prove a safe target.
+}
+function CompleteServerOperation {param($Data)
+ $pending=$script:DeployUI.PendingManagement;$script:DeployUI.PendingManagement=$null;if(-not $pending){return}
+ $m=$script:DeployUI.Management
+ if((ServerUIGet $Data Ok $null) -is [bool]){if(-not $Data.Ok){$m.Error='服务器拒绝操作：'+[string](ServerUIGet $Data.Data Code 'RemoteRejected');ShowServerManagement;return};$Data=$Data.Data}
+ try{
+  SetManagementIntentOutcome $pending $(if($pending.Purpose -eq 'AuthorizeExternal'){'AuthorizedReturnPending'}else{'Completed'})
+  if($script:AutoTCP -and (CompleteAutomaticTransportOperation $pending.Purpose $Data)){return}
+  switch($pending.Purpose){
+   'ServerInfo'{
+    $m.Info=$Data
+    if(-not $script:Smoke){Import-Module (UIProductPath 'ServerRegistry.psm1') -DisableNameChecking;$m.Server=Set-TCServerRecord -Root $script:Root -Id $m.ServerId -ServerInfo $Data -SessionRef $m.SessionRef}
+    if((ServerUIGet (ServerUIGet $script:DeployUI PairIntake) Role '') -eq 'Manager'){ContinuePairManagerReviewUI;ShowProductPairing}
+    else{StartServerOperation devices @{Offset=0;Limit=50;IncludeRevoked=$true} Devices}
+   }
+   'Devices'{$script:DeployUI.DeviceResult=$Data;ShowServerManagement}
+   'Rename'{Toast '设备名称已更新';StartServerOperation devices @{Offset=0;Limit=50;IncludeRevoked=$true} Devices}
+   'InviteCreate'{
+    $script:DeployUI.Invite=$Data
+    if(ServerUIGet $script:DeployUI PairFields){$script:DeployUI.PairFields.InviteText=[string]$Data.Invite}
+    if(-not $script:Smoke){Import-Module (UIProductPath 'DeploymentPairing.psm1') -DisableNameChecking;$verified=Get-TCPairInvite -Invite $Data.Invite -AllowUnconfirmed;$m.InviteFingerprint=$verified.Fingerprint}
+    $m.InviteHistory=@(@($m.InviteHistory)+@([pscustomobject]@{InviteId=$Data.InviteId;State=$Data.State;ExpiresAtUtc=$Data.ExpiresAtUtc}));ShowServerManagement;Toast '邀请已生成，尚未添加设备'
+   }
+   'InviteCancel'{foreach($i in $m.InviteHistory){if($i.InviteId -eq $Data.InviteId){$i.State=$Data.State}};if($script:DeployUI.Invite -and $script:DeployUI.Invite.InviteId -eq $Data.InviteId){$script:DeployUI.Invite.State=$Data.State};ShowServerManagement;Toast '邀请已取消，已有设备授权不受影响'}
+   'InviteStatus'{$m.LastInviteStatus=$Data;ShowServerManagement}
+   'RestoreInvite'{$script:DeployUI.Invite=$Data;InitializePairingUI;$script:DeployUI.PairFields.InviteText=[string]$Data.Invite;$script:DeployUI.InviteFromServer=$true;ShowProductPairing;Toast '已取回原邀请，请核对同一份设备申请'}
+   'ReconcileInvite'{$m.LastInviteStatus=$Data;ShowServerManagement;OpenDialog '原邀请的实际状态' ('状态：'+(ManagementLabel $Data.State)) '已经取回的是原邀请，未生成第二个邀请。核对后可以解除本机阻止。' '知道了' $null ''}
+   'ReconcilePairInvite'{$script:DeployUI.Invite=$Data;InitializePairingUI;$script:DeployUI.PairFields.InviteText=[string]$Data.Invite;$payload=$script:DeployUI.PairRequestInspection.Payload;StartServerOperation request_status @{RequestId=$payload.ClientRequest.RequestId;RequestDigest=$payload.RequestDigest;RefreshAuthorization=$true} AuthorizeExternal}
+   'ReconcileDevices'{$script:DeployUI.DeviceResult=$Data;ShowServerManagement;Toast '已读取服务器设备状态，请核对原设备和修订后解除本机阻止'}
+   'ReconcileServer'{$m.Info=$Data;ShowServerManagement;OpenDialog '服务器实际状态已读取' ('状态：'+(ManagementLabel $Data.OwnershipState)) '有待恢复事务时先恢复。只解除本机阻止不会执行原变更。' '知道了' $null ''}
+   'ManagementPlan'{
+    $m.Preview=$Data;ShowServerManagement
+    if($Data.Status -eq 'AlreadyEnabled'){Toast '管理能力已启用';StartServerOperation server_info @{} ServerInfo;return}
+    OpenDialog '启用服务器管理能力？' ('新增独立签名身份与设备台账；保留隧道、密钥和现有设备。依赖 OpenSSL 可用：'+[string]$Data.OpenSSLAvailable) '只变更服务器旁路元数据，不授权本机，不切换线路。' '按此计划启用' {StartServerOperation management_apply @{PlanId=$script:DeployUI.Management.Preview.PlanId;ApprovedChangeDigest=$script:DeployUI.Management.Preview.ChangeDigest} ManagementApply}
+   }
+   'ManagementApply'{Toast '管理能力已启用';StartServerOperation server_info @{} ServerInfo}
+   'RevokePreview'{
+    $m.Preview=$Data;ShowServerManagement
+    $peer=@(ServerUIGet $script:DeployUI.DeviceResult Devices @()|Where-Object {$_.DeviceId -eq $Data.DeviceId})|Select-Object -First 1
+    if($peer -and (ServerDeviceInUse $peer.ClientPublicKey)){ErrorDialog '此设备正在承载当前连接，或当前设备身份尚无法核对。请在维护窗口核对并停用后再撤销，避免中断当前管理及交易连接。';return}
+    OpenDialog '撤销这个设备的连接权限？' ('设备：'+[string](ServerUIGet $peer Name $Data.DeviceId)+"`n只有此设备失去 WireGuard 转发权限，其他设备保留。") 'TCP 外层 UUID 当前共享，不会自动轮换。撤销不能通过旧申请恢复。' '撤销指定设备' {StartServerOperation revoke @{DeviceId=$script:DeployUI.Management.Preview.DeviceId;ExpectedConfigRevision=$script:DeployUI.Management.Preview.ConfigRevision;ApprovedChangeDigest=$script:DeployUI.Management.Preview.ChangeDigest} Revoke} '取消' 'Danger'
+   }
+   'Revoke'{Toast '服务器已撤销指定设备';StartServerOperation devices @{Offset=0;Limit=50;IncludeRevoked=$true} Devices}
+   'UninstallPreview'{
+    $m.Preview=$Data;ShowServerManagement
+    if(ServerCurrentlyInUse){ErrorDialog '这台服务器关联当前活动线路。请安排维护并停用当前连接后，再执行卸载。';return}
+    OpenDialog '卸载这台服务器的通道服务？' ('影响设备：'+@($Data.AffectedDeviceIds).Count+' 台。将停止并移除本工具拥有的服务与规则，保留审计和身份。') '卸载不释放云服务器，云服务商仍会计费。当前本机线路不会自动切换。' '卸载自有服务' {StartServerOperation uninstall @{ExpectedConfigRevision=$script:DeployUI.Management.Preview.ConfigRevision;ApprovedChangeDigest=$script:DeployUI.Management.Preview.ChangeDigest} Uninstall} '取消' 'Danger'
+   }
+   'Uninstall'{Toast '通道服务已卸载，云服务器未释放';StartServerOperation server_info @{} ServerInfo}
+   'Recover'{Toast '恢复结果已核对';StartServerOperation server_info @{} ServerInfo}
+   'TransportPlan'{
+    $m.Preview=$Data;ShowServerManagement
+    OpenDialog '为现有服务器增加 TCP 连接方式？' ('TCP '+$Data.Transport.Port+' · '+$Data.Transport.ServerName+"`n保留现有 UDP、WireGuard 密钥及所有设备，不重启隧道服务。") '请核对云端 TCP 入站；实体 VPS 与重启验收仍待验证。本机不启用或换线。' '按此增量计划添加' {StartServerOperation transport_apply @{PlanId=$script:DeployUI.Management.Preview.PlanId;ApprovedChangeDigest=$script:DeployUI.Management.Preview.ChangeDigest} TransportApply}
+   }
+   'TransportApply'{Toast 'TCP 服务已添加，现有客户端需取得对应参数并验证';StartServerOperation server_info @{} ServerInfo}
+   'AuthorizeExternal'{
+    if($Data.Status -ne 'Authorized' -or -not $Data.Authorization){throw '设备未处于有效授权状态，请核对邀请和设备记录。'}
+    if($script:Smoke){StartJob @{Action='PairAuthorizationProtectFixture';EncryptedOnly=$true} {param($d)$script:DeployUI.EncryptedAuthorization=$d.EncryptedAuthorization;ShowProductPairing} '测试加密封装';return}
+    Import-Module (UIProductPath 'DeploymentPairing.psm1') -DisableNameChecking
+    $encrypted=Protect-TCPairAuthorization -SignedAuthorization $Data.Authorization -PairRequest $script:DeployUI.PairRequest -Invite $script:DeployUI.Invite.Invite
+    $script:DeployUI.EncryptedAuthorization=$encrypted.EncryptedAuthorization;$Data=$null;ShowProductPairing;Toast '授权已加密，只分享密文返回'
+    SetManagementIntentOutcome $pending Completed
+   }
+   default{$m.LastSummary='服务器操作已完成：'+$pending.Operation;ShowServerManagement}
+  }
+ }catch{$m.Error=$_.Exception.Message;$Data=$null;ErrorDialog $m.Error}
+}
+function ShowServerManagement {
+ if($script:AutoTCP){ShowAutomaticTransport;return}
+ InitializeServerUI;$script:Page='setup';$script:Role='servers';Head '' '设备与维护' '服务器的设备、邀请及维护集中处理；部署准备从部署中心继续。'
+ if(-not $script:DeployUI.Discovery -and -not (ServerUIGet $script:DeployUI ServerDiscoveryAttempted $false)){LoadServersUI}
+ $m=$script:DeployUI.Management;$bar=New-Object Windows.Controls.WrapPanel
+ AddC $bar (Btn '刷新台账' 'ServersRefresh' {LoadServersUI} 'Ghost');AddC $bar (Margin (Btn '新增服务器线路' 'ServersAdd' {BeginProductDeployment 'Add'} 'Primary') '10,0,0,0');AddC $script:HostPanel (Margin $bar '0,0,0,16')
+ $servers=@(ServerUIGet $script:DeployUI.Discovery Servers @()|Where-Object {(ServerUIGet $_ RecordState 'Active') -eq 'Active' -and $_.Connection -and $_.Connection.Host})
+ $null=DeploymentActions $script:HostPanel '返回部署中心' 'MaintenanceBack' {ShowSetupCenter} 'Ghost'
+ if(-not $servers.Count){AddC $script:HostPanel (Note '暂时没有可管理的服务器。可从部署中心准备线路，历史记录在操作历史查看。');return}
+ foreach($server in $servers){
+  $card=Card '18,16';$panel=Stack;$card.Child=$panel;AddC $panel (T ([string]$server.Name) 16 $script:Ink 'SemiBold')
+  $endpoint=if($server.Connection){$server.Connection.Host+':'+$server.Connection.Port}else{'仅有连接使用权'}
+  AddC $panel (Margin (T ($endpoint+' · '+(ManagementLabel ([string]$server.OwnershipState))) 12.5 $script:Text3) '0,5,0,0')
+  if((ServerUIGet $server RecordState 'Active') -ceq 'Archived'){
+   AddC $panel (Margin (Note '重装前身份和任务已归档保留；旧任务不能继续原授权。') '0,8,0,0');$null=ManagementDetails $panel ('原记录：'+$server.LocalRecordId+"`n新记录："+(ServerUIGet $server ReplacedByServerId '')) '归档记录'
+   AddC $script:HostPanel (Margin $card '0,0,0,12');continue
+  }
+  $button=Btn '查看设备与维护' ('ServerSelect'+($server.LocalRecordId-replace '-','')) {SelectServerUI ([string]$this.Tag)} 'Ghost';$button.Tag=$server.LocalRecordId;$button.Margin='0,10,0,0';AddC $panel $button;AddC $script:HostPanel (Margin $card '0,0,0,12')
+ }
+ if(-not $m.Server){return}
+ $card=Card;$p=Stack;$card.Child=$p;SetupCardHeader $p ('管理：'+$m.Server.Name) '只对这台服务器执行明确选择的操作。' 'server'
+ if((ServerUIGet $m.Server RecordState 'Active') -ceq 'Archived'){AddC $p (Note '此身份已归档，请选择重装后的新记录。');AddC $script:HostPanel $card;return}
+ if($m.Error){AddC $p (Note $m.Error 'amber')}
+ if(ServerUIGet $m ErrorCode){$null=ManagementDetails $p ('诊断代码：'+$m.ErrorCode)}
+ if((ServerUIGet $m UnresolvedIntent) -and -not (ServerUIGet $m ReinstallStage)){
+  AddC $p (Note ('上次管理操作结果待核对：'+(ManagementLabel $m.UnresolvedIntent.Operation)+'。已保留原目标和申请，阻止盲目重试。') 'amber')
+  $null=DeploymentActions $p '查询上次管理操作的实际结果' 'ManagementReconcile' {ReconcileManagementIntentUI} 'Ghost'
+  $null=DeploymentActions $p '结果已核对：解除本机重复提交阻止…' 'ManagementResolveIntent' {ResolveManagementIntentUI} 'Ghost'
+ }
+ if(-not (ServerUIGet $m ReinstallStage) -and $m.Server.Connection -and (ServerUIGet $m.Server PinnedHostKey)){$null=DeploymentActions $p '在部署向导核对服务器身份…' 'ServerReinstall' {BeginDeploymentIdentityVerification ([string]$script:DeployUI.Management.ServerId)} 'Ghost'}
+ if(ServerUIGet $m ReinstallStage){
+  AddC $p (Note '正在核验重装后的 SSH 身份。请重新输入凭据；原指纹、任务和资料保留，当前线路保持。')
+  if($m.ReinstallStage -ceq 'AwaitingTrust'){$null=DeploymentActions $p '核对新指纹并确认新记录…' 'ServerReinstallTrust' {ShowServerReinstallTrustUI}}
+  if($m.ReinstallStage -notin @('Previewing','Committing')){$null=DeploymentActions $p '退出本次重装核验，保留原记录' 'ServerReinstallCancel' {ResetServerReinstallUI} 'Ghost'}
+ }
+ if(-not $m.Authenticated){
+  if(-not $m.Server.Connection){AddC $p (Note '邀请授权的电脑只能使用线路；管理需要服务器 SSH 凭据。' 'amber')}
+  elseif(-not (ServerUIGet $m ReinstallStage) -or $m.ReinstallStage -ceq 'NeedsCredentials'){
+   $null=ServerField $p 'SSH 私钥文件（可留空）' 'ServerKeyPath' KeyPath '使用密码时留空；私钥和口令只经安全通道交给执行器。'
+   if(-not (ServerUIGet $m ReinstallStage) -and (ServerUIGet $script:DeployUI RecoveryRecordId '') -eq $m.ServerId -and (ServerUIGet $script:DeployUI RecoveredCredential)){AddC $p (Note '恢复包包含管理凭据。密码和密钥框留空，点击登录即可使用这次导入到内存中的凭据；会话关闭后不保留。')}
+   AddC $p (Margin (T '服务器密码 / 私钥口令' 12.5 $script:Ink 'SemiBold') '0,12,0,5');$password=ControlName (New-Object Windows.Controls.PasswordBox) 'ServerPassword';$password.MinHeight=34;AddC $p $password
+   if(ServerUIGet $m ReinstallStage){$null=DeploymentActions $p '只读核验重装后的新 SSH 身份' 'ServerReinstallConnect' {ConnectServerUI}}else{$null=DeploymentActions $p '登录并查看，不给本机新增授权' 'ServerConnect' {ConnectServerUI}}
+  }
+ }else{
+  $info=$m.Info
+  if(-not $info -and (ServerUIGet $m.Server Reinstall)){$null=DeploymentActions $p '查看新服务器状态（只读）' 'ServerReinstallReadInfo' {StartServerOperation server_info @{} ServerInfo} 'Ghost'}
+  if($info){KeyValue $p '服务器状态' (ManagementLabel ([string]$info.OwnershipState));KeyValue $p '管理权限' '已登录管理账户';$null=ManagementDetails $p ('服务器身份：'+[string]$info.RemoteOwnerId+"`n管理接口："+[string]$info.ManagementApiVersion+"`n配置修订："+[string]$info.ConfigRevision)}
+  $actions=New-Object Windows.Controls.WrapPanel
+  AddC $actions (Btn '刷新设备' 'ServerDevices' {StartServerOperation devices @{Offset=0;Limit=50;IncludeRevoked=$true} Devices} 'Ghost')
+  if(-not (ServerUIGet $info ManagementSigningPublicKey)) {AddC $actions (Margin (Btn '启用设备与邀请管理…' 'ServerManagementUpgrade' {StartServerOperation management_plan @{} ManagementPlan} 'Ghost') '8,0,0,0')}
+  AddC $actions (Margin (Btn '检查与恢复事务…' 'ServerRecover' {OpenDialog '检查并恢复未完成服务器事务？' '服务器会核对自有资源与实际结果，再完成恢复。恢复可能撤回未完成的服务器变更。' '不会替换本机线路；存在外部变更时停止并保留证据。' '核对并恢复' {StartServerOperation recover @{} Recover}} 'Ghost') '8,0,0,0')
+  AddC $p (Margin $actions '0,14,0,0')
+  if(ServerUIGet $info ManagementSigningPublicKey){
+   $null=ServerField $p '新电脑的名称' 'ServerInviteName' DeviceName
+   $null=DeploymentActions $p '生成一次性邀请（24 小时）' 'ServerCreateInvite' {StartServerOperation invite_create @{DeviceName=$script:DeployUI.Management.Input.DeviceName;ExpiresInHours=24} InviteCreate}
+   if($script:DeployUI.Invite){
+    AddC $p (Margin (T ('邀请：'+(ManagementLabel $script:DeployUI.Invite.State)+' · 到期 '+(ManagementTime $script:DeployUI.Invite.ExpiresAtUtc)) 12 $script:Text3) '0,10,0,0')
+    if(ServerUIGet $m InviteFingerprint){AddC $p (Margin (T ('与新电脑核对的签名指纹：'+$m.InviteFingerprint) 12 $script:Text3) '0,6,0,0')}
+    $null=DeploymentActions $p '复制邀请并打开交接页' 'ServerCopyInvite' {if(-not $script:Smoke){[Windows.Clipboard]::SetText([string]$script:DeployUI.Invite.Invite)};ShowProductPairing} 'Ghost'
+    $null=DeploymentActions $p '取消这个邀请' 'ServerCancelInvite' {StartServerOperation invite_cancel @{InviteId=$script:DeployUI.Invite.InviteId} InviteCancel} 'Ghost'
+   }
+   $null=DeploymentActions $p '批准新电脑申请…' 'ServerPairAuthorize' {ShowProductPairing} 'Ghost'
+  }
+  $null=ServerField $p '新增 TCP 服务端口' 'ServerTcpPort' TcpPort
+  $null=ServerField $p 'Reality 握手域名' 'ServerTcpName' ServerName
+  $null=DeploymentActions $p '预览为现有 UDP 增加 TCP…' 'ServerTcpPreview' {$port=0;if(-not [int]::TryParse($script:DeployUI.Management.Input.TcpPort,[ref]$port)){ErrorDialog '请填写有效 TCP 端口。';return};StartServerOperation transport_plan @{Transport=@{Type='tcp-reality';Port=$port;ServerName=$script:DeployUI.Management.Input.ServerName}} TransportPlan} 'Ghost'
+  $null=DeploymentActions $p '导出或导入管理恢复资料' 'ServerRecovery' {ShowManagementRecovery} 'Ghost'
+  $null=DeploymentActions $p '预览卸载服务器服务…' 'ServerUninstallPreview' {StartServerOperation uninstall_preview @{} UninstallPreview} 'Ghost'
+ }
+ if($script:DeployUI.PendingManagement){AddC $p (Margin (Note ('正在处理：'+(ManagementLabel $script:DeployUI.PendingManagement.Purpose)+'。结果核对前不允许重复提交。')) '0,14,0,0')};AddC $script:HostPanel $card
+ $result=$script:DeployUI.DeviceResult
+ if($result){
+  SectionLabel $script:HostPanel '设备台账' ('活跃 '+$result.ActiveDeviceCount+' · 已撤销 '+$result.RevokedDeviceCount)
+  foreach($device in @(ServerUIGet $result Devices @())){
+   $card=Card '18,15';$p=Stack;$card.Child=$p;AddC $p (T ($device.Name+' · '+(ManagementLabel $device.State)) 14 $script:Ink 'SemiBold');$null=ManagementDetails $p ('设备身份：'+$device.DeviceId+"`n隧道地址："+$device.ClientAddress)
+   AddC $p (Margin (T ('授权时间：'+$(if($device.AuthorizedAtUtc){ManagementTime $device.AuthorizedAtUtc}else{'未知（历史记录未保存）'})+'；握手未请求。') 12 $script:Text3) '0,4,0,0')
+   $rename=Btn '改名' ('DeviceRename'+($device.DeviceId-replace '-','')) {$script:DeployUI.Management.Input.RenameId=$this.Tag.Id;$script:DeployUI.Management.Input.RenameName=$this.Tag.Name;ShowServerManagement} 'Ghost';$rename.Tag=@{Id=$device.DeviceId;Name=$device.Name};AddC $p (Margin $rename '0,8,0,0')
+   if($device.State -eq 'Authorized'){$revoke=Btn '预览撤权…' ('DeviceRevoke'+($device.DeviceId-replace '-','')) {StartServerOperation revoke_preview @{DeviceId=[string]$this.Tag} RevokePreview} 'Ghost';$revoke.Tag=$device.DeviceId;AddC $p $revoke}
+   AddC $script:HostPanel (Margin $card '0,0,0,10')
+  }
+  if($null -ne $result.NextOffset){$null=DeploymentActions $script:HostPanel '查看下一页设备' 'DevicesNext' {StartServerOperation devices @{Offset=[int]$script:DeployUI.DeviceResult.NextOffset;Limit=50;IncludeRevoked=$true} Devices} 'Ghost'}
+  if($m.Input.RenameId){$card=Card;$p=Stack;$card.Child=$p;$null=ServerField $p '设备名称' 'DeviceNewName' RenameName;$null=DeploymentActions $p '保存名称' 'DeviceRenameSave' {StartServerOperation device_rename @{DeviceId=$script:DeployUI.Management.Input.RenameId;Name=$script:DeployUI.Management.Input.RenameName;ExpectedConfigRevision=[int]$script:DeployUI.DeviceResult.ConfigRevision} Rename};AddC $script:HostPanel $card}
+ }
+}

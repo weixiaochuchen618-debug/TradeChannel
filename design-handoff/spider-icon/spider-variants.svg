@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TradeChannel · 蛛图标 · 四色变体（用例图，非实施源）
+  直接渲染时可见四个状态并排。实施取色见 spider-master.svg 注释。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="300" viewBox="0 0 1080 300">
+  <defs>
+    <g id="legs" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M102 108 L74 86 L64 58"/><path d="M92 128 L52 122 L36 140"/>
+      <path d="M96 148 L66 164 L58 192"/><path d="M104 160 L86 184 L84 212"/>
+      <path d="M154 108 L182 86 L192 58"/><path d="M164 128 L204 122 L220 140"/>
+      <path d="M160 148 L190 164 L198 192"/><path d="M152 160 L170 184 L172 212"/>
+    </g>
+    <g id="eyes">
+      <circle cx="114" cy="128" r="11" fill="#0F1A38"/><circle cx="142" cy="128" r="11" fill="#0F1A38"/>
+      <circle cx="110" cy="124" r="3.5" fill="#fff"/><circle cx="138" cy="124" r="3.5" fill="#fff"/>
+    </g>
+  </defs>
+  <g font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="15" fill="#3f4651" text-anchor="middle">
+    <g transform="translate(20,14)">
+      <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+      <use href="#legs" stroke="#FFFFFF"/>
+      <ellipse cx="128" cy="134" rx="45" ry="38" fill="#FFFFFF"/>
+      <use href="#eyes"/>
+      <text x="128" y="286">主图标 · 白（固定）</text>
+    </g>
+    <g transform="translate(292,14)">
+      <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+      <use href="#legs" stroke="#22C55E"/>
+      <ellipse cx="128" cy="134" rx="45" ry="38" fill="#22C55E"/>
+      <use href="#eyes"/>
+      <text x="128" y="286">Connected · 绿</text>
+    </g>
+    <g transform="translate(564,14)">
+      <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+      <use href="#legs" stroke="#F5A524"/>
+      <ellipse cx="128" cy="134" rx="45" ry="38" fill="#F5A524"/>
+      <use href="#eyes"/>
+      <text x="128" y="286">过渡 · 琥珀</text>
+    </g>
+    <g transform="translate(836,14)">
+      <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+      <use href="#legs" stroke="#98A2B3"/>
+      <ellipse cx="128" cy="134" rx="45" ry="38" fill="#98A2B3"/>
+      <use href="#eyes"/>
+      <text x="128" y="286">静默 · 灰（默认/故障）</text>
+    </g>
+  </g>
+</svg>

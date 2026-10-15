@@ -1,0 +1,25 @@
+﻿<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TradeChannel 0.15.0 · 使用与部署</title>
+<style>body{font:16px/1.8 'Segoe UI','Microsoft YaHei',sans-serif;color:#20252c;background:#f4f5f7;margin:0}main{max-width:900px;margin:32px auto;padding:36px;background:white;border:1px solid #e4e7eb;border-radius:16px}h1{font-size:28px;line-height:1.4}h2{font-size:21px;margin-top:30px}nav{display:flex;gap:18px;flex-wrap:wrap}a{color:#2457b8}details{border:1px solid #e4e7eb;padding:16px 20px;border-radius:10px;margin:14px 0}summary{font-weight:600;cursor:pointer}.note{padding:15px 20px;background:#eef3fb;border-radius:9px;margin:20px 0}li{margin:8px 0}code{background:#f0f2f5;padding:2px 5px}small{color:#737b87}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.step{background:#f5f6f8;border-radius:9px;padding:16px}@media(max-width:700px){main{margin:0;padding:22px}.flow{grid-template-columns:1fr}}</style></head><body><main>
+<small>TradeChannel 0.15.0 · 预览版</small><h1>添加线路，自动准备，确认后启用</h1>
+<p>打开程序保持当前连接。部署中心统一添加线路、继续准备和操作历史；连接成功与交易、AI 工具的实际使用分别检查。</p>
+<nav><a href="#add">添加线路</a><a href="#resume">中断与重装</a><a href="#pair">新增电脑</a><a href="#daily">日常使用</a><a href="#history">整理记录</a></nav>
+<h2 id="add">首次配置或新增服务器</h2>
+<div class="flow"><div class="step"><strong>1 · 添加线路</strong><p>提供接入资料。软件识别电脑和服务器状态，无需自己判断是哪一种部署场景。</p></div><div class="step"><strong>2 · 自动准备</strong><p>核对目标与范围后，串联服务器 UDP/TCP、本机授权、配置保存和独立检查。</p></div><div class="step"><strong>3 · 已准备</strong><p>完整结果自动保存。明确启用前，当前连接保持；也可以稍后使用。</p></div></div>
+<ol><li>打开「部署 → 添加线路」，粘贴服务器资料。</li><li>密码登录填写服务器账户密码；SSH 私钥登录选择本机密钥文件，私钥口令只用于解密该文件。用户名和端口可在高级区修改。</li><li>首次或变化后的主机指纹与云控制台等可信来源核对，再确认本次准备的目标与影响范围。</li><li>软件自动准备服务器和本机的 UDP/TCP 配置。需要云账户操作时，按本次端口清单放行，再回当前页继续检查。</li><li>完整准备自动保存。TCP 未完成、连接检查失败或原结果未知时，按照同页提示继续，不把已保存误当成检查通过。</li><li>点击「启用这条线路」，核对交易、日常、AI 的流向及中断影响。退出 NinjaTrader 后明确确认，才接管本机网络。</li></ol>
+<div class="note">已经安装过组件的电脑会复用组件和有效偏好。新增服务器仍要生成本机对应的授权和连接配置；服务器服务安装完成不等于整条线路已验收。</div>
+<h2 id="resume">登录失败、部署中断与服务器重装</h2>
+<p>从部署中心的「继续部署／继续准备」回原步骤。认证失败在当前页补齐凭据；结果未知先核对原事务和原申请，避免重复授权。</p>
+<p>软件分别核对 SSH 主机身份和实际隧道身份。同指纹也可能发生应用重置；只有 SSH 密钥更新时保留已经核验的原设备申请。新的应用环境使用新身份，旧记录归档。</p>
+<h2 id="pair">为已有服务器新增一台电脑</h2>
+<ol><li>管理电脑在「设备与维护」登录目标、生成邀请，可信交给新电脑。</li><li>新电脑在「添加线路」打开或粘贴邀请，核对来源后生成独立申请。</li><li>管理电脑打开申请、核对设备并批准，再把加密返回交给原申请电脑。</li><li>新电脑打开返回资料，继续本机配置与检查，最后明确启用。</li></ol>
+<p>当前电脑只显示当前需要的步骤。交接使用完整资料或文件；新电脑无需服务器密码。返回丢失使用同一份原申请，不复制旧电脑私钥共同连接。</p>
+<h2 id="daily">日常连接与切换协议</h2>
+<p>线路卡显示已保存的默认 UDP/TCP；另一种已准备的连接方式可由用户主动选择。备齐后日常使用无需再次登录服务器补部署。短期推荐过期不删除配置，连接仍校验身份、配置、恢复状态和实际出口。</p>
+<p>正在使用的设备身份不会并行探测。没有默认、已知失败或有未决事务时，按具体提示处理。通用探测通过后，仍需核对 NinjaTrader 登录、实时行情和历史数据；它不能解除 AI 平台地域限制。</p>
+<p>概览中的流量走向使用有效服务商和线路。连接或切换会说明影响；关闭方式在设置中选择，收起到托盘和退出管理界面都保持后台连接。重启电脑后需手动连接。</p>
+<h2 id="history">管理历史记录</h2>
+<p>「部署 → 操作历史」统一筛选、导出、单条或批量清理，并能恢复显示。清空已结束记录只整理列表；当前线路、未决操作和恢复依赖受保护，底层密钥、授权与配置保留。</p>
+<details><summary>现有配置与高级维护</summary><p>现有配置导入、电脑迁移和 Windows Server 工具位于部署中心的「其他接入与技术工具」；日常 Linux 部署使用上方「添加线路」。高级操作见 <a href="Linux部署指南.md">Linux 部署指南</a>。</p><p>设备撤权、本机线路移除、服务器卸载与云资源释放是不同操作。移除本机记录不停止云计费。</p></details>
+<p><a href="新手部署指南.md">完整新手指南</a> · <a href="README.md">版本说明</a></p>
+</main></body></html>

@@ -1,0 +1,27 @@
+{
+    "Summary":  {
+                    "ResponseMTU":  1380,
+                    "ExportHasMTU":  true,
+                    "TunMTU":  1380,
+                    "EndpointMTU":  1380,
+                    "ProbeEndpointMTU":  1380,
+                    "SyntaxCheckPassed":  true,
+                    "NoTunnelStarted":  true,
+                    "NoServerCalled":  true,
+                    "RealDeviceIdentityUsed":  false
+                },
+    "Passed":  true,
+    "Checks":  [
+                   "Authorized MTU is preserved in exported client.conf",
+                   "Actual generated TUN, WireGuard endpoint and independent probe all inherit MTU 1380",
+                   "MTU-bearing client export remains idempotent",
+                   "Invalid MTU  is rejected before any client configuration is created",
+                   "Invalid MTU True is rejected before any client configuration is created",
+                   "Invalid MTU 1380 is rejected before any client configuration is created",
+                   "Invalid MTU 1380.5 is rejected before any client configuration is created",
+                   "Invalid MTU 1279 is rejected before any client configuration is created",
+                   "Invalid MTU 1421 is rejected before any client configuration is created",
+                   "Legacy response preserves existing default instead of silently guessing another server MTU"
+               ],
+    "HostNetworkChanged":  false
+}

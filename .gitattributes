@@ -1,0 +1,2 @@
+# Preserve original source bytes, including PowerShell UTF-8 BOMs.
+* -text
