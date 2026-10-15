@@ -1,0 +1,667 @@
+﻿#requires -Version 5.1
+# Only literal product messages are public. Never return parser, SSH, HTTP or inner exception text.
+$script:TCErrorMessages=@{
+ 'UnsupportedTcpPort'='TCP 首选端口仅支持 443、8443、2443，请修改原草稿的端口。'
+ 'OperationBindingMismatch'='核对结果与原操作的申请或输入不一致，原记录和恢复保护仍保留。'
+ 'OperationResolutionInvalid'='原操作的结束状态或资源恢复尚未证明，不能重新部署。'
+ 'OperationEvidenceAmbiguous'='找到多份相互冲突的原操作证明，无法确认唯一结果。'
+ 'OperationHistoryReadLimit'='原操作归档核对达到读取上限，本轮核对已结束，原记录保留。'
+ 'LegacyMutationEvidenceMissing'='旧操作缺少原计划或事务证明，不能判断已回滚或未执行。'
+ 'PlanNotFound'='原部署计划已不存在，请先核对原操作结果，再准备新计划。'
+ 'CredentialTemporarilyUnavailable'='本机登录资料暂时被占用，已保存的登录资料和输入内容保留。'
+ 'CredentialUnavailable'='本机登录资料无法解密或格式无效，请在原任务中重新输入。'
+ 'CleanupPreviewStale'='确认前资料或运行状态已变化，请刷新并重新预览。此次未执行清理。'
+ 'CleanupPreviewInvalid'='清理确认已经失效，请重新选择并预览。'
+ 'CleanupRecoveryRequired'='上次本机清理未完成，请在部署中心点击「完成本机恢复」。'
+ 'CleanupRolledBack'='本机清理未完成，原资料已完整恢复。请重新预览后重试。'
+ 'CleanupRecordMissing'='所选资料已变化或不存在，请刷新列表。'
+ 'CleanupInvalidId'='所选记录标识无效，请刷新列表。'
+ 'CleanupSelectionEmpty'='请先选择要清理的记录。'
+ 'CleanupJournalInvalid'='本机清理日志无法核验，原资料保留，请核对本机记录。'
+ 'CleanupRecoveryConflict'='资料在清理中断后被修改，未覆盖新内容。请核对本机记录。'
+ 'CleanupUnsafePath'='清理路径超出应用管理范围，原资料保留。'
+ 'CleanupChanged'='清理期间资料发生变化，已停止并恢复原记录。'
+ 'ServerTargetMissing'='服务器目标已失效，请重新打开原准备记录。未创建空白服务器。'
+ 'AccessRequired'='此记录只有连接使用权；请使用邀请接入，或提供管理资料。'
+ 'ActiveIdentity'='请断开这条线路后回退本机配置。'
+ 'AddressConflict'='没有已知无冲突网段，请在高级设置检查现有地址。'
+ 'AlreadyExists'='记录已经存在。'
+ 'ApprovalMismatch'='不支持此变更类型。'
+ 'ApprovalTargetChanged'='暂停后服务器身份已变化，请先核对原步骤。'
+ 'AuthenticationRequired'='请在程序内登录服务器。'
+ 'AuthorizationMissing'='尚未取得本机授权。'
+ 'BundleBindingMismatch'='本地 bundle 与真实验签的原授权资料不一致。'
+ 'BundleVersionUnsupported'='未支持此本地 bundle 版本。'
+ 'Busy'='另一个操作正在更新这些记录，请稍后重试。'
+ 'CandidateAmbiguous'='发现多个相同申请候选，请核对记录；未新增线路。'
+ 'CandidateMissing'='请先准备候选线路。'
+ 'CandidateTransactionMismatch'='原候选准备资料发生变化，请保留记录并核对。'
+ 'ComparisonResultInvalid'='协议对比返回缺失标识、重复方式或空结果。'
+ 'ComponentIntegrityInvalid'='运行组件路径不可信。'
+ 'ComponentMissing'='缺少随包运行组件，请安装完整版本。'
+ 'ComponentUnsafeAcl'='运行组件目录可被其他账户写入，请重新安装完整版本。'
+ 'ComponentVersionConflict'='运行组件版本与当前软件不一致。'
+ 'ConfigMissing'='接收端授权合成资料缺失，未重新申请。'
+ 'ConfigurationIdentityUnverified'='原线路缺少唯一的直接 DNS。'
+ 'ConnectionInvalid'='只粘贴接入地址，不接受执行命令。'
+ 'ConnectionMetadataInvalid'='无法读取本机连接资料，请重新核对原记录。'
+ 'ConnectorOnly'='邀请接入只有连接使用权，请取得含 TCP 的授权资料。'
+ 'DataMissing'='操作记录不存在。'
+ 'DataTooLarge'='数据超过允许大小。'
+ 'DependencyIntegrityFailed'='部署组件摘要不匹配，已拒绝加载。请重新解压完整包。'
+ 'DependencyLockInvalid'='部署依赖锁不完整。'
+ 'DependencyLockMissing'='缺少部署依赖锁，请重新解压完整包。'
+ 'DeploymentNotReady'='请先核对正在进行或需要恢复的任务。'
+ 'DiagnosticAddressChanged'='连接配置绑定的本机 IPv4 地址已不在所选网卡上，请重新检查这条线路以更新网络绑定。'
+ 'DiagnosticConfigReadFailed'='无法读取出口检查配置，请重新核对本机连接资料。'
+ 'DiagnosticInterfaceMissing'='原物理网卡已不可用，请选择本机网络。'
+ 'DiagnosticInterfaceRenamed'='原物理网卡已改名，请更新此线路的本机网络设置。'
+ 'DiagnosticInterfaceUnknown'='无法读取网卡身份。'
+ 'DiagnosticRootUnsupported'='现有出口检查器仅支持已安装的数据根，未检查其他数据根或生产连接。'
+ 'DispatchOutcomeUnknown'='请查询原操作结果后继续。'
+ 'DraftDiscarded'='这次添加已放弃，请先从操作历史恢复填写并重新核对。'
+ 'EngineBindingRequired'='已登记连接方式缺少可信引擎版本，请重新准备。'
+ 'EngineChanged'='连接引擎已变化，请重新准备并检查此连接方式；当前连接未改变。'
+ 'EnrollmentRunMismatch'='此接入申请已经绑定到另一项运行记录。'
+ 'ExistingIdentityMismatch'='原线路与服务器记录未绑定。'
+ 'ExistingIdentityRequired'='补齐需指定原线路，不生成新设备。'
+ 'ExistingSelectionRequired'='这台电脑已有多份该服务器的授权，请从线路页选择已有线路；未生成额外设备。'
+ 'ExistingServerMissing'='原服务器部署已不存在，未重新安装或新增设备。'
+ 'ExitBindingUnverified'='服务器台账格式无法核实。'
+ 'ExitInvalid'='出口观测结果无效。'
+ 'FingerprintInvalid'='SSH 主机指纹无效。'
+ 'HostChanged'='已知 SSH 主机身份变化，请先核验。'
+ 'IdentityAuthenticationRequired'='会话尚未观察到服务器身份。'
+ 'IdentityEvidenceChanged'='会话接到新任务前应用状态已变化，请重新核验。'
+ 'IdentityObservationChanged'='核验登录代次发生变化。'
+ 'IdentityReassessmentRequired'='旧版核验令牌不能用于应用身份提交，请重新核验。'
+ 'IdentityRecordCollision'='新身份标识已存在，未覆盖任何记录。'
+ 'IdentitySessionBusy'='请等待当前只读操作完成。'
+ 'IdentityTargetMismatch'='实际 SSH 接入地址与原记录不一致。'
+ 'IdentityTrustRequired'='主机密钥变化必须先精确确认本次指纹。'
+ 'InvalidData'='数据记录损坏，保留原文件以便恢复。'
+ 'InvalidId'='对象标识无效。'
+ 'InvalidRequest'='请求内容不完整或已经变化，请刷新原步骤后重试。'
+ 'IsolatedActionForbidden'='隔离验证禁止实际会话或网络变更。'
+ 'LegacyCheckpointInvalid'='历史归档标记无效。'
+ 'LineForwardingUnverified'='实际 TLS/HTTPS、DNS 或所选出口证据未通过核验。'
+ 'LocalComponentsMissing'='本机运行组件缺失，请完整解压安装包后重新检查；没有开始服务器部署。'
+ 'LocalNetworkUnknown'='无法读取本机现有网段，请先处理系统查询权限；未猜测可用网段。'
+ 'LocalRequestIncomplete'='本机原始申请资料缺失或超限。'
+ 'LocalRequestMismatch'='本机申请与原始私有状态不匹配。'
+ 'ManagementIdentityChanged'='已固定的服务器管理签名身份发生变化，请核验服务器恢复或重装情况。'
+ 'ManagementIdentityInvalid'='管理签名身份不是受支持的 RSA-3072 公钥。'
+ 'ModeMismatch'='控制器未接受模式切换，尚未清缓存或关闭连接，请刷新实际状态。'
+ 'ModeUnavailable'='当前引擎配置缺少请求的模式（'
+ 'NameInvalid'='名称需为 1–80 个可显示字符。'
+ 'NeedsRecovery'='缺少实际进程身份或出生时间，禁止切换。'
+ 'NetworkPolicyUpdateRequired'='正式连接需要明确的物理网卡策略，请先确认本机网络。'
+ 'OperationMismatch'='执行器未返回原操作标识。'
+ 'OutcomeUnknown'='原操作结果仍待核对，请查看原记录；不会自动重做。'
+ 'PartialDeploymentRequired'='只有已准备且没有待处理事务的部分部署可以先使用。'
+ 'PreparedProfileMissing'='尚无已备齐的服务和本机连接资料。'
+ 'PrivateKeyMissing'='原申请私钥资料超限。'
+ 'ProbeProgressInvalid'='检测阶段无效。'
+ 'ProbeRouteUnverified'='诊断配置哈希已变化。'
+ 'ProfileApiUnavailable'='线路 profile API 尚不可用，原候选配置已保留。'
+ 'ProfileConfigurationMissing'='请先登记原线路配置。'
+ 'ProfileExitUnverified'='服务商出口不能作为所选连接方式的验证证据。'
+ 'ProxyJournalInvalid'='代理恢复记录无法核验。'
+ 'ProxyRecoveryStale'='恢复预览已过期。'
+ 'ProxyRefreshFailed'='代理值已写入，系统通知未完成，请核对普通网络。'
+ 'ReadActionNotAllowed'='读取进程不接受变更请求。'
+ 'RecommendationCheckRequired'='未识别的连接选择模式。'
+ 'RegistryAmbiguous'='此接入地址已有多个历史记录，请先选择已有服务器并核验身份。'
+ 'RegistryVersion'='不支持此服务器台账版本。'
+ 'ReinstallAuthenticationRejected'='核验会话未接受认证。'
+ 'ReinstallAuthenticationRequired'='尚未取得固定指纹的实际登录会话。'
+ 'ReinstallBindingMismatch'='令牌不属于当前目标、数据根或 SSH 会话。'
+ 'ReinstallConfirmationMismatch'='确认指纹与本次预览不一致。'
+ 'ReinstallDeclarationRequired'='请明确选择“服务器已重装”，再重新核验。'
+ 'ReinstallIdentityRequired'='身份核验需要原接入地址和固定指纹。'
+ 'ReinstallObservationChanged'='实际指纹或登录代次已变化。'
+ 'ReinstallObservationRequired'='尚未取得实际 SSH 指纹观测，原记录保留。'
+ 'ReinstallOldCredential'='新记录不能引用重装前保存的管理凭据。'
+ 'ReinstallOldDevice'='新记录不能关联重装前的设备线路。'
+ 'ReinstallOldIdentity'='新记录不能导入重装前的归属、隧道身份或管理签名身份。'
+ 'ReinstallPreviewExpired'='重装核验预览已过期，请重新核验。'
+ 'ReinstallRecordChanged'='原记录已变化，请重新核验；没有建立新记录。'
+ 'ReinstallSessionMismatch'='核验仅接受绑定的实际只读 SSH 会话。'
+ 'ReinstallSessionRejected'='核验会话未建立，原记录保留。'
+ 'ReinstallTasksChanged'='原任务在核验期间已变化。'
+ 'ReinstallTokenInvalid'='重装核验令牌无效。'
+ 'RemoteFailed'='服务器拒绝了操作。'
+ 'RemoteRejected'='远程操作未接受。'
+ 'RequestReconciliationMismatch'='原申请与实际授权结果不一致，未解除恢复。'
+ 'RequiredProviderUnavailable'='目标连接依赖的服务商不可用，请先修复对应档案。'
+ 'RunMismatch'='部署运行记录不匹配。'
+ 'SameApplicationAuthorizationUnverified'='当前授权响应不属于原申请和设备，未复用。'
+ 'SameApplicationBindingMismatch'='原请求未绑定已验证的当前应用身份。'
+ 'SameApplicationExistingDevice'='原任务使用已导入的设备，请按原 CandidateNodeId 调用 Existing 入口，保持设备私钥与线路不变。'
+ 'SameApplicationOutcomeUnknown'='原任务仍有未决结果，不能把请求迁入另一项准备。'
+ 'SameApplicationRequestPath'='原请求目录未绑定本次原任务，不能迁移其他生成代次的申请。'
+ 'SameApplicationReuseBlocked'='只有已确认的同应用 SSH 密钥更新允许复用原请求；重置和未部署目标必须重新准备。'
+ 'SameApplicationSourceChanged'='原任务或原请求在核验期间发生变化。'
+ 'SavedDefaultInvalid'='原默认来源无法核验，不能自动迁移其绑定。'
+ 'SavedDefaultMissing'='请先选择原线路的连接方式。'
+ 'ServerArchived'='原任务不能并入重装后的新记录。'
+ 'ServerBindingChanged'='停止期间线路或服务器身份绑定已变化。'
+ 'ServerChanged'='此地址的服务器归属已经变化。'
+ 'ServerMissing'='服务器记录不存在，请重新选择。'
+ 'ServerTaskBusy'='这台服务器仍有进行中的任务，请先核对结果；未停止进程或归档记录。'
+ 'ServerTaskIdentityChanged'='旧任务不能继承新的 SSH 身份批准。'
+ 'SessionActive'='仍有原会话在使用代理设置，请结束后再处理。'
+ 'SessionBindingMismatch'='登录会话不属于这次准备。'
+ 'SessionMismatch'='会话属于另一项部署。'
+ 'SettingsInvalid'='连接参数无效。'
+ 'StageMismatch'='未识别执行结果阶段。'
+ 'TcpProfileMissing'='TCP profile 尚未通过语法检查。'
+ 'TemplateMissing'='选择的来源线路已不存在，未改用其他线路设置。'
+ 'TradingAppRunning'='NinjaTrader 正在运行，未停止任何连接。'
+ 'TransportBindingMismatch'='TCP 参数不属于原设备授权。'
+ 'TransportInfoInvalid'='TCP 参数返回不符合契约。'
+ 'TransportOptionsMismatch'='TCP 目标未通过 TLS 预检或超出原审批 choices，未提交计划。'
+ 'UdpNotHealthy'='UDP 服务尚未核验，不能交付。'
+ 'UdpProfileMissing'='原 UDP profile 尚未通过语法检查。'
+ 'UnsafeAcl'='原始申请文件向其他账户开放。'
+ 'UnsafePath'='数据目录被文件占用。'
+ 'WindowBusy'='另一个操作正在保存窗口偏好，请稍后重试。'
+ 'WindowPath'='无法解析窗口偏好路径。'
+ 'WindowRead'='无法读取窗口偏好，请检查文件权限或占用情况；原文件未修改。'
+ 'WindowValue'='CloseBehavior 只能是 Tray 或 ExitInterface。'
+}
+$script:TCExactErrors=@{
+ 'AI 分流实际回读不符合原意图。'=$true
+ 'AI 助手名单无法读取，未切换模式，现有连接保持。'=$true
+ 'AI 助手设置未通过回读，请检查当前状态。'=$true
+ 'bootstrap DNS 必须是明确外层，不能使用 detour。'=$true
+ 'CommonApplicationData 父目录所有者不受信任。'=$true
+ 'CommonApplicationData 父目录允许普通用户替换启动目录。'=$true
+ 'Listener 名称缺失或重复。'=$true
+ 'Manifest 的日常和备用 tag/port 不一致。'=$true
+ 'Manifest 服务商 Tag 重复。'=$true
+ 'Manifest 服务商缺少 Tag。'=$true
+ 'Manifest 专用端口缺少 TradeTag。'=$true
+ 'Merge 文件路径无效。'=$true
+ 'package.sha256 格式错误。'=$true
+ 'SSH 私钥不存在或超限。'=$true
+ 'SSH 私钥文件不存在或超过 1 MiB。'=$true
+ 'SSH 私钥文件不存在或超过大小限制。'=$true
+ 'staging 校验清单被修改。'=$true
+ 'TCP 配置未绑定原线路，已停止；请核对维护结果。'=$true
+ 'WireGuard 官方签名校验失败，安装未执行。'=$true
+ 'YAML 顶层必须从第 1 列开始。'=$true
+ 'YAML 顶层结构无效。'=$true
+ 'YAML 对象缺少冒号。'=$true
+ 'YAML 对象未闭合。'=$true
+ 'YAML 键重复。'=$true
+ 'YAML 键重复或使用合并别名。'=$true
+ 'YAML 括号不匹配。'=$true
+ 'YAML 嵌套过深。'=$true
+ 'YAML 数组未闭合。'=$true
+ 'YAML 缩进不一致。'=$true
+ 'YAML 引号未闭合。'=$true
+ '安装程序已退出，但没有检测到 WireGuard，安装未通过回读。请检查服务器网络和安装结果。'=$true
+ '安装目录不能经过链接或重解析点。'=$true
+ '安装目录存在其他用户权限。'=$true
+ '安装目录权限不符合要求。'=$true
+ '安装目录已被其他文件占用。'=$true
+ '安装文件必须使用本机绝对路径。'=$true
+ '保护解除没有通过回读，请检查诊断信息。'=$true
+ '备份内容校验失败。'=$true
+ '备用端口应大于 1023。'=$true
+ '备用端口应在 1024–65535 之间。'=$true
+ '备用监听器无效。'=$true
+ '备用目标必须是明确的节点或代理组。'=$true
+ '备用目标不能是直连或拒绝节点。'=$true
+ '本机服务器记录超过匹配上限，请先整理并核对目标记录。'=$true
+ '必须提供 Store 或 Providers。'=$true
+ '不能把共用上级目录作为服务商目录。'=$true
+ '不同服务商不能共用代理端口。'=$true
+ '不支持的操作。'=$true
+ '不支持的服务商操作。'=$true
+ '不支持的服务商类型。'=$true
+ '不支持的启动文件路径。'=$true
+ '不支持的自定义项。'=$true
+ '不支持多个 YAML 文档、指令或制表符缩进。'=$true
+ '不支持该 YAML 双引号转义。'=$true
+ '不支持该 YAML 映射格式。'=$true
+ '不支持未闭合或跨行的 YAML 流式值。'=$true
+ '产品版本元数据格式无效。'=$true
+ '产品版本元数据缺失，请完整解压安装包。'=$true
+ '产品包文件缺失。'=$true
+ '程序必须位于该服务商安装目录或额外目录中。'=$true
+ '此动作不属于受支持的管理变更。'=$true
+ '此客户端没有可恢复的备份。'=$true
+ '此预览已执行，请重新预览，不能重放事务。'=$true
+ '待检查的线路不存在。'=$true
+ '当前部署记录存在，但配置文件丢失。请使用备份恢复或重新导入节点。'=$true
+ '当前程序目录必须是有效的本机磁盘路径。'=$true
+ '当前服务器安装向导支持 64 位 Windows Server 2022，请在目标服务器执行。'=$true
+ '当前服务器操作尚未结束，请完成或核对后再继续此申请。'=$true
+ '当前会话未能安全核实或操作仍在进行，请先检查状态或断开；不会重复启动。'=$true
+ '当前未连接；选择仅可保存，连接成功后才能应用更改。'=$true
+ '当前线路配置中没有服务商，请先在「线路」页登记并应用。'=$true
+ '登录启动 action 必须只打开 UI，且不得携带参数。'=$true
+ '登录启动仅支持当前 Windows 用户，不能使用服务或组身份。'=$true
+ '登录启动任务包含额外身份、触发器或 action。'=$true
+ '登录启动任务不允许失败后自动重启。'=$true
+ '登录启动任务结构不匹配。'=$true
+ '登录启动任务启用状态不一致。'=$true
+ '登录启动任务权限不受信任。'=$true
+ '登录启动任务权限不完整。'=$true
+ '登录启动任务设置不匹配。'=$true
+ '登录启动任务身份不匹配。'=$true
+ '登录启动任务所有权、身份或 action 不匹配。'=$true
+ '登录启动任务允许其他身份修改。'=$true
+ '登录启动所有权凭据无效；不会接管或删除任务。'=$true
+ '动态 proxy-providers 的上游域名无法完整静态确认，本版不自动登记。'=$true
+ '读取期间连接节点发生变化，请检查当前状态。'=$true
+ '读取期间启动任务发生变化，请重试。'=$true
+ '端口必须是 1–65535 的整数。'=$true
+ '端口与 TradeChannel 自身接口冲突。'=$true
+ '断开未通过状态核验。恢复记录保留，请先导出诊断；未操作未知进程或其他网卡。'=$true
+ '服务器 TCP 服务尚未通过检查，请查看服务器诊断。'=$true
+ '服务器部署状态需要恢复，先在服务器管理页核对原事务。'=$true
+ '服务器操作未被接受。'=$true
+ '服务器隧道身份与原线路不同，已停止自动配置。'=$true
+ '服务商 ID 不在当前 manifest 中或不唯一，请检查线路配置。'=$true
+ '服务商 ID 或 slot 重复。'=$true
+ '服务商 ID 无效。'=$true
+ '服务商 ID 与检查对象不一致。'=$true
+ '服务商 slot 必须在 1–4 之间。'=$true
+ '服务商本机代理端口未知。'=$true
+ '服务商档案为空。'=$true
+ '服务商档案已变更，请刷新。'=$true
+ '服务商档案在编辑期间发生变化，请刷新后重试。'=$true
+ '服务商列表 JSON 已损坏，未修改。'=$true
+ '服务商列表版本或结构无效，未修改。'=$true
+ '服务商列表不可读取，未修改。'=$true
+ '服务商列表正被另一操作更新。'=$true
+ '服务商名称应为 1–48 个可显示字符。'=$true
+ '复制后的安装程序校验失败，安装未执行。'=$true
+ '该安装目录已经登记。'=$true
+ '该服务商正在承载流量。请先将交易切回自建线路、日常上网改为直连，再准备或恢复客户端；当前连接未改变。'=$true
+ '该节点尚未具备可启用配置。请先完成授权并导入客户端配置。'=$true
+ '该自动设置仅支持 Clash Verge。'=$true
+ '隔离验证仅接受可信临时数据根。'=$true
+ '隔离验证禁止生产会话或网络变更动作。'=$true
+ '隔离只读目录不能经过重解析点。'=$true
+ '隔离只读上下文仅接受已存在的可信临时验证目录。'=$true
+ '隔离只读上下文禁止读取临时数据根之外的部署资料。'=$true
+ '隔离只读上下文禁止访问实际控制器。'=$true
+ '隔离只读上下文禁止修改保护或运行会话。'=$true
+ '隔离只读资料不能经过重解析点。'=$true
+ '管理意图包含未支持字段，未保存或发送。'=$true
+ '候选 TCP 外层存在不支持的 detour 或传输。'=$true
+ '候选 TCP/Reality 结构无效。'=$true
+ '候选含未知外层传输，无法独立验证。'=$true
+ '候选配置必须先通过检查，并由部署向导启用。'=$true
+ '候选配置不能位于数据根之外。'=$true
+ '候选配置不支持当前 AI 分流意图。'=$true
+ '候选配置不支持日常出口。'=$true
+ '候选配置不支持所选交易备用。'=$true
+ '候选配置缺少所选交易备用身份。'=$true
+ '候选配置缺少所选日常服务商身份。'=$true
+ '候选启动结果未知且无法证明归属。'=$true
+ '候选缺少受支持的用户态 WireGuard 身份。'=$true
+ '候选身份编码无效。'=$true
+ '候选实际会话与目标配置不一致。'=$true
+ '候选外层 DNS 地址无效。'=$true
+ '候选网络验证仅接受 HTTPS。'=$true
+ '恢复记录提交失败，原线路记录已恢复。'=$true
+ '恢复凭据不属于此配置文件。'=$true
+ '恢复凭据格式无效。'=$true
+ '回退点或运行状态已变化，请重新查看恢复预览。'=$true
+ '会话尚未就绪，不能应用原意图。'=$true
+ '检测网卡只用于本机候选检查。'=$true
+ '交易备用尚未写入线路配置，当前出口未改变。'=$true
+ '交易电脑使用内置 WireGuard 协议，无需安装图形客户端；此操作仅用于转发服务器。'=$true
+ '节点 ID 无效。'=$true
+ '节点列表无法读取。'=$true
+ '进程尚未退出。'=$true
+ '进程身份已变化，未执行停止。'=$true
+ '旧配置默认只能从无新字段、无推荐的原线路记录迁移。'=$true
+ '控制管道和 SOCKS 端口不属于同一进程。'=$true
+ '控制管道写入超时。'=$true
+ '控制接口 HTTP 标头无效。'=$true
+ '控制接口 JSON 超过大小限制。'=$true
+ '控制接口必须仅监听本机并启用认证。'=$true
+ '控制接口读取超时。'=$true
+ '控制接口拒绝读取。'=$true
+ '控制接口拒绝读取或返回了不支持的分块响应。'=$true
+ '控制接口未就绪。'=$true
+ '控制接口响应不完整。'=$true
+ '控制接口响应超过大小限制。'=$true
+ '控制接口响应过大。'=$true
+ '来源节点在提交前已变化。'=$true
+ '连接操作正在进行，请等待完成后再操作。'=$true
+ '连接方式集合缺失标识或包含重复方式。'=$true
+ '连接方式切换缺少已选择的线路；未验证或改变任何出口。'=$true
+ '连接方式验证缺少明确的方式或配置哈希。'=$true
+ '连接配置必须位于指定数据根内。'=$true
+ '连接配置尚未通过语法校验。'=$true
+ '连接配置完整性已变化，请重新准备或预览。'=$true
+ '连接偏好文件无法读取；未重置保存的选择。'=$true
+ '连接尚未通过状态核验，请检查或断开；不会重复启动。'=$true
+ '连接尚未通过状态核验，未应用线路选择；请检查状态。'=$true
+ '连接选择未通过回读，请检查当前状态；不会自动重启。'=$true
+ '连接意图包含无效模式或出口。'=$true
+ '路径经过链接或重解析点，无法可靠验证归属。'=$true
+ '没有可用的专用备用端口。'=$true
+ '没有找到可接管的本机通道。请选择导入配置。'=$true
+ '模式或交易/日常出口实际回读不符合原意图。'=$true
+ '目标记录已变化或不再匹配原申请，请重新核对本机台账。'=$true
+ '配置被其他程序更新，未覆盖。'=$true
+ '配置模块不启动客户端，请在维护窗口使用客户端自己的界面。'=$true
+ '配置模块不停止客户端，请在维护窗口使用客户端自己的界面。'=$true
+ '配置已被后续修改，拒绝覆盖；备份仍保留。'=$true
+ '配置在计划后已变化，请刷新后重试。'=$true
+ '启动 staging 必须为目录。'=$true
+ '启动目录必须位于本机 CommonApplicationData。'=$true
+ '启动任务删除后仍然存在。'=$true
+ '启动任务注册后未启用。'=$true
+ '启动域名必须是完整域名，不能包含 URL、通配符或 IP。'=$true
+ '启动域名最多 256 个。'=$true
+ '切换目标、原会话或偏好已变化，预览已失效，请重新预览。'=$true
+ '清除服务商偏好需显式指定 -Repair；默认仅诊断。'=$true
+ '请提供此次服务器的最新密码。'=$true
+ '请提供服务器登录密码，或选择 SSH 私钥登录。'=$true
+ '请提供服务商的可执行程序。'=$true
+ '请提供客户端的本机绝对目录。'=$true
+ '请填写服务商端口。'=$true
+ '请填写网址（域名），不支持 IP 地址。'=$true
+ '请填写有效端口。'=$true
+ '请完整解压 TradeChannel 安装包后创建快捷方式。'=$true
+ '请先登记不可变线路 profile，再切换连接方式。'=$true
+ '请先登记不可变线路 profile，再预览切换。'=$true
+ '请先核对设备申请，并登录目标服务器读取真实身份。'=$true
+ '请先退出 NinjaTrader 整个控制中心，再启动通道。'=$true
+ '请先退出 NinjaTrader 整个控制中心，再确认切换；当前连接未改变。'=$true
+ '请先退出 NinjaTrader 整个控制中心，再升级线路配置；当前连接未改变。'=$true
+ '请先退出 NinjaTrader 整个控制中心，再应用节点更改；当前连接未改变。'=$true
+ '请先退出 NinjaTrader 整个控制中心；解除后该程序将可以使用普通网络。'=$true
+ '请先退出整个 NinjaTrader，再执行维护恢复。'=$true
+ '请先在部署页导入并启用通过检查的节点。'=$true
+ '请先在部署页选择可用节点。'=$true
+ '请先在当前服务器卡片登录管理账户。'=$true
+ '请选择 SSH 私钥文件；服务器密码与私钥口令分别填写。'=$true
+ '请选择程序文件（完整路径）。'=$true
+ '请选择代理客户端自己的安装目录。'=$true
+ '请选择客户端自己的文件夹。'=$true
+ '请选择已检测到的客户端，或选择其他 SOCKS5 客户端。'=$true
+ '请以管理员身份打开服务器控制台后安装。'=$true
+ '请以管理员身份执行连接操作。'=$true
+ '请由当前交互式管理员用户设置登录启动；不支持 SYSTEM 或后台服务代设。'=$true
+ '请在 WireGuard 中停用旧隧道，再启动本通道。不要卸载它。'=$true
+ '请粘贴与申请对应的原邀请，或登录管理端取回原邀请，再批准设备。'=$true
+ '请指定连接操作。'=$true
+ '请指定已验证的节点配置。'=$true
+ '全局 Merge 档案类型无效。'=$true
+ '全局 Merge 档案重复。'=$true
+ '缺少经过认证的回环控制接口。'=$true
+ '缺少完整安装包的引擎及校验清单。'=$true
+ '缺少有效的本机认证控制管道。'=$true
+ '缺少有效切换预览，请重新预览并确认。'=$true
+ '任务计划程序返回了无效结果。'=$true
+ '仍有通道进程，断开尚未完成；不会自动重启。'=$true
+ '日志会话身份无效。'=$true
+ '上游域名未能完整读取或超过 256 个，不能登记不完整的备用 DNS 规则。'=$true
+ '尚未连接，请先连接再应用出口选择。'=$true
+ '尚未配置线路，无需升级。'=$true
+ '尚未完整识别客户端的上游节点域名。请先导入并加载订阅后重新检测；不登记可能依赖香港 DNS 的备用线路。'=$true
+ '尚未找到该客户端，请先安装并完成一次订阅导入，再点击自动发现。'=$true
+ '设备申请已变化，请重新核验。'=$true
+ '设备申请指向另一台服务器；没有提交授权。'=$true
+ '设备未处于有效授权状态，请核对邀请和设备记录。'=$true
+ '实际出口选择或正在运行的配置哈希与预期不符。'=$true
+ '实际连接节点与所选节点不符，请检查当前状态。'=$true
+ '实际运行桥接只接受当前产品数据根；隔离测试必须使用模块私有适配器。'=$true
+ '事务路径不能经过重解析点。'=$true
+ '随包安装程序或校验清单缺失，请完整重新解压。'=$true
+ '随包安装程序校验未通过，安装未执行。'=$true
+ '随包引擎完整性核验失败。'=$true
+ '所选服务商尚未写入线路配置，请先在「线路」页应用。'=$true
+ '所选节点尚无可用配置，请先在部署页完成导入。'=$true
+ '停机期间身份核验失败，请检查实际状态；交易保护未解除。'=$true
+ '停止期间目标 manifest 已变化。'=$true
+ '通道进程存在，但会话未就绪或控制接口不可用；请断开后重试，不会启动新实例。'=$true
+ '通道启动进程已经退出，请检查诊断信息；不会自动重试。'=$true
+ '通道启动失败，请查看诊断信息；不会自动重启。'=$true
+ '通道尚未停止，请稍后检查；交易保护仍保留，不会自动重启。'=$true
+ '通道未运行。请先启动，或在部署向导导入并启用节点。'=$true
+ '通道已停止，但清理未完成，请检查代理与保护状态。'=$true
+ '同名任务不属于当前安装；不会接管或删除。'=$true
+ '推荐来源缺少相同 manifest 与引擎的完整原始证据。'=$true
+ '托管标记不完整，未修改。'=$true
+ '托管标记重复，未修改。'=$true
+ '托管嗅探配置不完整。'=$true
+ '外网验证期间会话身份、配置哈希或出口发生变化。'=$true
+ '未完成目标选择，请先核对当前服务器操作。'=$true
+ '未找到当前用户的桌面目录。'=$true
+ '未找到该服务商，请刷新列表。'=$true
+ '未找到可可靠分析的 clash-verge.yaml，无法自动准备。'=$true
+ '未找到唯一的客户端安装，请在编辑页填写正确目录。'=$true
+ '未知服务商 ID。'=$true
+ '未知诊断读取操作。'=$true
+ '无法安全比较候选与活动身份，未开始网络探测。'=$true
+ '无法安全核实会话身份；请检查诊断信息，未启动或停止任何未知进程。'=$true
+ '无法从 WireGuard 官网下载安装程序。可改用随包引导器；完整组件下载仍需服务器能够访问官网。'=$true
+ '无法读取 Clash 扩展配置。'=$true
+ '无法读取配置文件。'=$true
+ '无法核对活动身份。'=$true
+ '无法核对交易程序身份。'=$true
+ '无法核实当前线路状态，暂不修改代理客户端配置。'=$true
+ '无法可靠分析 YAML 别名、标签或复杂键。'=$true
+ '无法连接本机控制管道。'=$true
+ '无法确定有效的备用节点或代理组。'=$true
+ '无法验证控制管道的服务端进程。'=$true
+ '无效的任务目录。'=$true
+ '无效托管块。'=$true
+ '线路记录未匹配，未完成恢复。'=$true
+ '线路来源节点不唯一或已变化。'=$true
+ '线路缺少节点库，不能提交活动引用。'=$true
+ '线路尚未停止或回退点已变化。请重新查看恢复预览；未断开或切换任何线路。'=$true
+ '校验期间清单发生变化。'=$true
+ '校验清单包含不安全路径。'=$true
+ '校验清单包含不安全路径段。'=$true
+ '校验清单包含重复或自引用项。'=$true
+ '验证期间实际会话身份已变化。'=$true
+ '邀请和设备申请不对应；没有提交授权。'=$true
+ '邀请签名身份与已登录服务器不匹配；没有提交授权。'=$true
+ '已保存默认必须绑定已登记的不可变配置。'=$true
+ '已保存默认连接需要相同选择模式的明确预览。'=$true
+ '已保存默认缺少服务器或设备身份。'=$true
+ '已保存默认缺少完整配置或引擎哈希。'=$true
+ '已有 WireGuard 安装操作正在进行，请等待完成。'=$true
+ '已有服务商的 slot 不能改变。'=$true
+ '已有自定义 sniffer/listeners，未覆盖；请手动合并。'=$true
+ '已有自定义 sniffer/listeners，未修改；请手动合并。'=$true
+ '有效配置已有其他监听器，自动覆盖列表会丢失它们；请手动合并。'=$true
+ '原 deployment 缺少 manifest 引用。'=$true
+ '原步骤已有部署成果或操作记录，请先核对原结果；不能把原批准套到新目标。'=$true
+ '原配置资料丢失，不能保证恢复。'=$true
+ '原始资料恢复哈希不一致。'=$true
+ '原邀请的服务器绑定不匹配；没有提交授权。'=$true
+ '运行报告路径不能经过重解析点。'=$true
+ '运行报告只支持本机磁盘路径。'=$true
+ '运行观测快照版本无效。'=$true
+ '运行观测快照超过上限。'=$true
+ '运行观测快照损坏，保留原记录。'=$true
+ '运行事件标识无效。'=$true
+ '运行事件标志无效。'=$true
+ '运行事件不接受任意字段或秘密资料。'=$true
+ '运行事件出口标签无效。'=$true
+ '运行事件记录包含无效字段。'=$true
+ '运行事件记录超过安全上限。'=$true
+ '运行事件记录格式不受支持。'=$true
+ '运行事件来源无效。'=$true
+ '运行事件枚举无效。'=$true
+ '运行事件身份格式无效。'=$true
+ '运行事件数字无效。'=$true
+ '运行事件正由另一操作写入。'=$true
+ '运行状态或配置发生变化，请重新预览。'=$true
+ '找不到服务商可执行程序。'=$true
+ '找不到服务商目录。'=$true
+ '找不到该服务商 ID。'=$true
+ '找不到可读取的恢复凭据。'=$true
+ '诊断目标已存在，请选择新文件名。'=$true
+ '执行器返回不属于当前操作，已停止自动续接。'=$true
+ '只能从指定备份目录恢复。'=$true
+ '只能添加 .exe 程序。'=$true
+ '只有当前有效、绑定相同配置的推荐才能保存默认。'=$true
+ '指定备用端口已占用或与日常/控制端口冲突。'=$true
+ '重连后的原会话身份不符合原配置。'=$true
+ '重装核验需要重新输入管理密码或明确选择 SSH 私钥，不使用旧保存凭据。'=$true
+ '状态读取失败，未启动新实例。'=$true
+ '准备期间配置或状态发生变化；候选保留，未替换线路。'=$true
+ '桌面存在同名的其他快捷方式，请先重命名它，避免覆盖。'=$true
+ '桌面快捷方式回读未通过。'=$true
+ '最多只能登记 4 个服务商。'=$true
+}
+$script:TCErrorMessages['RecoveryBindingChanged']='原操作核对引用已变化，请重新打开该部署记录。'
+$script:TCErrorMessages['RecoveryReadOnly']='服务器正在核对原操作结果，请等待本次核对结束。'
+$script:TCErrorMessages['ManagementPlanStillValid']='原管理计划尚未失效，不能确认旧操作已停止；请保留原记录稍后核对。'
+$script:TCErrorMessages['ManagementInitializationPresent']='服务器存在管理资料，需要核对原事务，未替换现有身份。'
+$script:TCErrorMessages['ManagementAbsenceUnverified']='原管理计划、文件或身份的核对证据不完整，未发起新的初始化。'
+$script:TCErrorMessages['ManagementStateChanged']='管理资料在核对期间发生变化，请重新核对原操作。'
+$script:TCErrorMessages['ManagementHistoryPresent']='存在既有管理初始化记录，请恢复其原管理身份。'
+$script:TCErrorMessages['ManagementHistoryUnverified']='管理初始化历史未能完成核对，保留原记录，未生成新身份。'
+$script:TCErrorMessages['ProbeRecoveryNotReady']='请先核对远端变更及其他事务，再清理原本机探针。'
+$script:TCErrorMessages['LocalStateBusy']='本机记录暂时被占用，原资料已保留，请稍后继续。'
+$script:TCErrorMessages['CandidatePreparationFailed']='生成本机连接配置失败，部署已停止。已有服务器授权和进度已保留，请继续原任务。'
+$script:TCErrorMessages['NodeStoreLayoutInvalid']='本机节点库目录结构未通过检查，连接配置尚未生成。现有线路资料已保留，请查看本次错误记录。'
+$script:TCErrorMessages['NodeStoreIndexInvalid']='本机节点索引无法读取或校验，连接配置尚未生成。原索引已保留，请修复后继续原任务。'
+$script:TCErrorMessages['NodeStoreProviderInvalid']='服务商档案或程序路径未通过校验，连接配置尚未生成。请核对服务商设置后继续原任务。'
+$script:TCErrorMessages['NodeStoreStorageFailed']='无法准备本机节点库，请检查目录权限、磁盘空间或文件占用后继续原任务。'
+$script:TCErrorMessages['NodeStoreBusy']='本机节点库被另一操作占用，本次等待已结束。请待该操作结束后继续原任务。'
+$script:TCErrorMessages['CandidateInputInvalid']='本机连接配置的输入参数未通过校验，请查看本次错误记录后继续原任务。'
+$script:TCErrorMessages['CandidateInputUnreadable']='无法读取本次连接授权文件。服务器已有授权保留，请核对本机文件后继续原任务。'
+$script:TCErrorMessages['CandidateConfigurationInvalid']='本次 WireGuard 授权配置格式未通过校验，连接配置尚未生成。请查看本次错误记录。'
+$script:TCErrorMessages['CandidateFieldMissing']='本次授权配置缺少必需字段，连接配置尚未生成。请查看错误记录中的字段名后继续原任务。'
+$script:TCErrorMessages['CandidateKeyValidationFailed']='客户端密钥的本机校验未通过，连接配置尚未生成。请查看本次错误记录；不要重新部署服务器。'
+$script:TCErrorMessages['CandidatePolicyInvalid']='本机路由或 AI 程序规则未通过检查，连接配置尚未生成。请核对设置后继续原任务。'
+$script:TCErrorMessages['CandidateStorageFailed']='写入本机候选配置失败，请检查目录权限、磁盘空间或文件占用后继续原任务。'
+$script:TCErrorMessages['CandidateValidationFailed']='生成的本机连接配置未通过引擎校验，部署已停止。服务器授权保留，请查看本次错误记录后继续原任务。'
+$script:TCErrorMessages['ProbeValidationFailed']='生成的独立检测配置未通过引擎校验，部署已停止。服务器授权保留，请查看本次错误记录后继续原任务。'
+$script:TCErrorMessages['CandidateCommitFailed']='本机候选配置提交未完成，部署已停止。请继续原任务核对本机结果，避免重复生成线路。'
+$script:TCErrorMessages['CandidateCleanupFailed']='本次候选暂存资料未能清理完成。请检查本机目录权限或文件占用，再从原任务处理。'
+$script:TCErrorMessages['CandidateNativeTimeout']='本机配置校验已超时，部署已停止。请检查本机资源占用后继续原任务。'
+function Get-TCFailureContext {
+ param($Failure)
+ $exception=if($Failure -is [Management.Automation.ErrorRecord]){$Failure.Exception}elseif($Failure -is [Exception]){$Failure}else{$null}
+ $context=[ordered]@{Code='';Stage='';ObjectKind='';Field='';Rule='';NativeTool='';NativeExitCode=$null}
+ # Every string below is an explicit diagnostic vocabulary. Do not substitute
+ # a general identifier regex: passwords and tokens may also look like names.
+ $allowed=@{
+  Stage=@('ValidateInput','ReadConfiguration','ParseWireGuard','ReadProviders','DeriveClientPublicKey','InitializeStore','ValidateStorePath','ValidateStoreLayout','InitializeStoreAcl','AcquireStoreLock','ReadIndex','CreateStaging','ReadAgentRules','BuildRoutingPolicy','WriteCandidate','WriteProbe','ValidateCandidate','ValidateProbe','WriteManifest','CommitDirectory','CommitIndex','CleanupCandidate')
+  ObjectKind=@('Input','WireGuard','StoreDirectory','NodeIndex','ProviderRegistry','StagingDirectory','AgentRuleSet','CandidateConfig','ProbeConfig','Manifest')
+  Field=@('Store.children','Store.displayCache','Store.lock','WireGuard.Interface.PrivateKey','WireGuard.Interface.Address','WireGuard.Peer.PublicKey','WireGuard.Peer.Endpoint','WireGuard.Peer.AllowedIPs','Config','Config.route.rule_set','Config.dns.servers','Config.endpoints','Config.outbounds')
+  Rule=@('OwnedStoreLayout','DirectoryRequired','NoReparse','ExclusiveLock','NativeDeadline','RequiredField','DerivePublicKey','EngineCheck','RuleSetValidation','DnsValidation','WireGuardValidation','OutboundValidation')
+  NativeTool=@('wg','sing-box')
+ }
+ for($depth=0;$exception -and $depth -lt 8;$depth++){
+  $code=[string]$exception.Data['TCFailureCode']
+  if(-not $context.Code -and $script:TCErrorMessages.ContainsKey($code)){$context.Code=$code}
+  foreach($name in @('Stage','ObjectKind','Field','Rule','NativeTool')){
+   $value=[string]$exception.Data[('TCFailure'+$name)]
+   if(-not $context[$name] -and $value -cin $allowed[$name]){$context[$name]=$value}
+  }
+  $exitCode=0
+  if($null -eq $context.NativeExitCode -and $null -ne $exception.Data['TCFailureNativeExitCode'] -and [int]::TryParse([string]$exception.Data['TCFailureNativeExitCode'],[ref]$exitCode)){$context.NativeExitCode=$exitCode}
+  $exception=$exception.InnerException
+ }
+ [pscustomobject]$context
+}
+function Write-TCFailureDiagnostic {
+ param([string]$Root,$Failure,[string]$Action,[string]$RunId,[string]$RequestId,[string]$Stage)
+ try{
+ # Only structural error data is retained. Exception messages, command text,
+ # target objects and source lines may contain credentials and are not logged.
+ $id=[guid]::NewGuid().ToString('N');$exception=if($Failure -is [Management.Automation.ErrorRecord]){$Failure.Exception}elseif($Failure -is [Exception]){$Failure}else{$null}
+ $chain=@();$origins=@();$sourceFrames=@();$context=Get-TCFailureContext $Failure
+ $sourceFiles=@('NodeStore.psm1','NodeOperations.ps1','DeploymentFlow.psm1','DeploymentClient.psm1','DeploymentStore.psm1','ProviderBridge.psm1','ProviderManagement.ps1','LineStore.psm1')
+ while($exception -and $chain.Count -lt 8){
+  $chain+=,[pscustomobject]@{Type=$exception.GetType().FullName;HResult=$exception.HResult}
+  $originType=$null;$originName=[string]$exception.Data['TCFailureType'];$originLine=0;$originResult=0
+  if($originName -cmatch '^System\.[A-Za-z0-9_.+]{1,150}$'){foreach($assembly in @([Exception].Assembly,[Management.Automation.RuntimeException].Assembly,[ComponentModel.Win32Exception].Assembly)){$candidateType=$assembly.GetType($originName,$false,$false);if($candidateType -and [Exception].IsAssignableFrom($candidateType)){$originType=$candidateType;break}}}
+  if($originType -and [string]$exception.Data['TCFailureFile'] -cin $sourceFiles -and [int]::TryParse([string]$exception.Data['TCFailureLine'],[ref]$originLine) -and $originLine -gt 0 -and [int]::TryParse([string]$exception.Data['TCFailureHResult'],[ref]$originResult)){
+   $origins+=,[pscustomobject]@{Type=$originType.FullName;HResult=$originResult;File=[string]$exception.Data['TCFailureFile'];Line=$originLine}
+  }
+  foreach($frame in @($exception.Data['TCFailureFrames']|Select-Object -First 12)){
+   if($frame -and [string]$frame.File -cin $sourceFiles -and [string]$frame.Function -cmatch '^(Stop|Import|Initialize|Read|Write|Open|ConvertFrom|ConvertTo|Convert|New|Assert|Invoke|Set|Get|Update|Remove|Complete|Test|Resolve)-TC[A-Za-z0-9]{1,80}$'){
+    $lineNumber=0;if([int]::TryParse([string]$frame.Line,[ref]$lineNumber) -and $lineNumber -gt 0){$sourceFrames+=,[pscustomobject]@{Function=[string]$frame.Function;File=[string]$frame.File;Line=$lineNumber}}
+   }
+  }
+  $exception=$exception.InnerException
+ }
+ $frames=@()
+ if($Failure -is [Management.Automation.ErrorRecord]){
+  foreach($line in @(([string]$Failure.ScriptStackTrace) -split '\r?\n'|Select-Object -First 24)){
+   if($line -match '^at ([A-Za-z0-9_<>{}-]+), (.+): line (\d+)$'){
+    $name=$Matches[1];$leaf=[IO.Path]::GetFileName($Matches[2]);$number=[int]$Matches[3]
+    $sourcePath=[string]$Matches[2]
+    if($leaf -cmatch '^[A-Za-z0-9_.-]+\.(ps1|psm1)$' -and $sourcePath.StartsWith(($PSScriptRoot.TrimEnd('\')+'\'),[StringComparison]::OrdinalIgnoreCase)){$frames+=,[pscustomobject]@{Function=$name;File=$leaf;Line=$number}}
+   }
+  }
+ }
+ $safe=@{};foreach($entry in @(@('Action',$Action),@('Stage',$Stage))){$safe[$entry[0]]=if([string]$entry[1] -cmatch '^[A-Za-z][A-Za-z0-9]{0,63}$'){$entry[1]}else{''}}
+ $safeRun=if($RunId -cmatch '^[0-9a-f-]{36}$'){$RunId}else{''};$safeRequest=if($RequestId -cmatch '^[a-f0-9]{32}$'){$RequestId}else{''}
+ $record=[pscustomobject]@{SchemaVersion=2;ErrorId=$id;AtUtc=[DateTimeOffset]::UtcNow.ToString('o');Action=$safe.Action;Stage=$safe.Stage;RunId=$safeRun;RequestId=$safeRequest;FailureContext=$context;ExceptionChain=$chain;OriginalFailures=$origins;SourceFrames=$sourceFrames;Frames=$frames}
+  Import-Module (Join-Path $PSScriptRoot 'DeploymentStore.psm1') -DisableNameChecking
+  $path=Join-Path (Join-Path (Assert-TCDPath $Root) 'diagnostics\failures') ($id+'.json')
+  Write-TCDJson $path $record -NewOnly -Compact
+  return $id
+ }catch{return ''} # Diagnostics never replace the original outcome.
+}
+function Get-TCWorkerFailure {
+ param($Failure,[string]$Action,[string]$RequestId,[ValidateSet('BeforeDispatch','Executing')][string]$Phase='BeforeDispatch',[bool]$MayHaveChanged=$false)
+ $raw=if($Failure -is [Management.Automation.ErrorRecord]){[string]$Failure.Exception.Message}elseif($Failure -is [Exception]){[string]$Failure.Message}else{[string]$Failure}
+ $code='WorkerStepFailed';$message='此步骤未完成，请查看运行状况中的原操作记录。';$known=$false
+ $context=Get-TCFailureContext $Failure
+ if($context.Code){$code=$context.Code;$message=$script:TCErrorMessages[$code];$known=$true}
+ elseif($raw -match '^\[TC:([A-Za-z][A-Za-z0-9_]{0,63})\]' -and $script:TCErrorMessages.ContainsKey($matches[1])){$code=$matches[1];$message=$script:TCErrorMessages[$code];$known=$true}
+ elseif($script:TCExactErrors.ContainsKey($raw)){$message=$raw;$code='OperationRejected';$known=$true}
+ $unknown=($code -in @('OutcomeUnknown','DispatchOutcomeUnknown','NeedsRecovery','OperationMismatch','SameApplicationOutcomeUnknown','OperationBindingMismatch','OperationResolutionInvalid','OperationEvidenceAmbiguous','OperationHistoryReadLimit','LegacyMutationEvidenceMissing') -or ($code -eq 'PlanNotFound' -and $MayHaveChanged) -or (-not $known -and $MayHaveChanged -and $Phase -eq 'Executing'))
+ $next=switch -Regex ($code){
+  '^CleanupRecovery'{'RecoverLocalCleanup';break}
+  '^CredentialTemporarilyUnavailable$'{'RetryLocalRead';break}
+  '^UnsupportedTcpPort$'{'EditDeploymentSettings';break}
+  '^OperationBindingMismatch$|^OperationResolutionInvalid$|^OperationEvidenceAmbiguous$|^OperationHistoryReadLimit$|^LegacyMutationEvidenceMissing$|^PlanNotFound$'{'ReconcileOperation';break}
+  '^CredentialUnavailable$|^Authentication|^PrivateKey|^InvalidCredential$|^ConnectionInvalid$'{'EditCredentials';break}
+  '^Component|^Dependency|^LocalComponents|^EngineChanged$'{'RepairInstallation';break}
+  '^DiagnosticInterface|^DiagnosticAddress|^LocalNetwork'{'ChooseNetwork';break}
+  '^NetworkPolicyUpdateRequired$'{'UpdateNetworkBinding';break}
+  '^SavedDefaultMissing$'{'ChooseProfile';break}
+  '^ProfileConfigurationMissing$|^PreparedProfileMissing$|^[UT]dpProfileMissing$|^TcpProfileMissing$|^CandidateMissing$'{'CompleteProfile';break}
+  '^TradingAppRunning$'{'CloseTradingApplication';break}
+  'Identity|ServerBinding|Fingerprint|HostChanged'{'ReviewIdentity';break}
+  'OutcomeUnknown|NeedsRecovery|OperationMismatch'{'ReconcileOperation';break}
+  'Busy$'{'WaitForOperation';break}
+  default{if($unknown){'ReconcileOperation'}else{'ReviewOperation'}}
+ }
+ $errorId=[guid]::NewGuid().ToString('N');$safeAction=if($Action -match '^[A-Za-z][A-Za-z0-9]{0,63}$'){$Action}else{'Unknown'}
+ $safeRequest=if($RequestId -cmatch '^[a-f0-9]{32}$'){$RequestId}else{''}
+ # The public message stays plain: a beginner needs to know what to do, not an
+ # internal identifier. Code, phase and error id stay available for support
+ # through TechnicalId and are still carried on the result object.
+ $hint=switch([string]$next){
+  'RecoverLocalCleanup'{'从部署中心完成本机恢复后再继续。'}
+  'EditCredentials'{'请在原服务器记录中核对登录资料。'}
+  'RetryLocalRead'{'稍后重试读取本机登录资料。'}
+  'EditDeploymentSettings'{'请选择支持的 TCP 端口后重新提交。'}
+  'RepairInstallation'{'请重新解压完整安装包后再试。'}
+  'CloseTradingApplication'{'请退出整个交易软件后重试。'}
+  'ChooseNetwork'{'请在本机选择要使用的网络后重试。'}
+  'UpdateNetworkBinding'{'请重新检查这条线路以更新本机网络绑定。'}
+  'ChooseProfile'{'请先为这条线路选择已准备的连接方式。'}
+  'CompleteProfile'{'请先完成这条线路的准备，再重试。'}
+  'ReviewIdentity'{'请先核对服务器身份，再重试。'}
+  'ReconcileOperation'{'请先核对原操作的实际结果，再决定是否重试。'}
+  'WaitForOperation'{'另一个操作正在进行，请稍后重试。'}
+  default{'请按本步骤的提示处理后重试。'}
+ }
+ $technical='错误编号：'+$errorId.Substring(0,12)+'；原因：'+$code+'；阶段：'+$Phase+'。'
+ [pscustomobject]@{Code=$code;Message=($message+[Environment]::NewLine+$hint);TechnicalId=$technical;Phase=$Phase;Action=$safeAction;NextAction=$next;OutcomeUnknown=$unknown;ErrorId=$errorId;RequestId=$safeRequest;FailureContext=$context}
+}
+Export-ModuleMember -Function Get-TCWorkerFailure,Write-TCFailureDiagnostic
