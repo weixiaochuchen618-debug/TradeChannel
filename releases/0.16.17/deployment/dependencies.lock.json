@@ -1,0 +1,138 @@
+﻿{
+  "SchemaVersion": 1,
+  "SourcePolicy": "Official NuGet HTTPS; fixed versions and package/file SHA256",
+  "Framework": "net48",
+  "AcquiredAtUtc": "2026-10-08T09:37:40.3704264Z",
+  "Dependencies": [
+    {
+      "Package": "ssh.net",
+      "Version": "2025.1.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/ssh.net/2025.1.0/ssh.net.2025.1.0.nupkg",
+      "PackageSHA256": "BEDA6F13907E231A0C92AF4240C7A1A11E5946D8A16874385728669242232FDF",
+      "Asset": "lib/net462/Renci.SshNet.dll",
+      "File": "assets/lib/Renci.SshNet.dll",
+      "SHA256": "748A696DD6FB276E403C071061F35C75E799B428EA853E0B6096A92041364664",
+      "License": "MIT"
+    },
+    {
+      "Package": "jose-jwt",
+      "Version": "5.3.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/jose-jwt/5.3.0/jose-jwt.5.3.0.nupkg",
+      "PackageSHA256": "C6F2720714A895F54A7057524A710F61CD372D25E6911FE2F32BA0866400F794",
+      "Asset": "lib/net472/jose-jwt.dll",
+      "File": "assets/lib/jose-jwt.dll",
+      "SHA256": "381446AAF131A8B397131F0EA2AF8C6267BEA8BF558E38A319F979A85EF219CB",
+      "License": "MIT"
+    },
+    {
+      "Package": "bouncycastle.cryptography",
+      "Version": "2.6.2",
+      "Source": "https://api.nuget.org/v3-flatcontainer/bouncycastle.cryptography/2.6.2/bouncycastle.cryptography.2.6.2.nupkg",
+      "PackageSHA256": "623936FB1FD171579C706390390711282898CF2C759A5167852E5AB82208F8CB",
+      "Asset": "lib/net461/BouncyCastle.Cryptography.dll",
+      "File": "assets/lib/BouncyCastle.Cryptography.dll",
+      "SHA256": "D9A58C84BAA55A12684CD2381BCA03C8F2A9CBAE21A6BF1E9EBD65F495629721",
+      "License": "MIT"
+    },
+    {
+      "Package": "microsoft.extensions.logging.abstractions",
+      "Version": "8.0.3",
+      "Source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/8.0.3/microsoft.extensions.logging.abstractions.8.0.3.nupkg",
+      "PackageSHA256": "E4C498D5A13051B4577A148F1D8C3470167215C507E2392069B75DC61322BB74",
+      "Asset": "lib/net462/Microsoft.Extensions.Logging.Abstractions.dll",
+      "File": "assets/lib/Microsoft.Extensions.Logging.Abstractions.dll",
+      "SHA256": "B4E0E778AFDC76403792390B056F68DE0CED742D16C5B0347D9CCA6930F4761B",
+      "License": "MIT"
+    },
+    {
+      "Package": "microsoft.extensions.dependencyinjection.abstractions",
+      "Version": "8.0.2",
+      "Source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/8.0.2/microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg",
+      "PackageSHA256": "51F2DF1100245F10DA54F0BB7E813F277155117777D4FBBAB902214E27372606",
+      "Asset": "lib/net462/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+      "File": "assets/lib/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+      "SHA256": "19EDD4F5E69A4589DC314909B5854A22F89C4B9AB040591771397B2CB1A17BA6",
+      "License": "MIT"
+    },
+    {
+      "Package": "microsoft.bcl.asyncinterfaces",
+      "Version": "8.0.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.asyncinterfaces/8.0.0/microsoft.bcl.asyncinterfaces.8.0.0.nupkg",
+      "PackageSHA256": "F5A5A68B03092AB2ABF68843D4A4AEA25DFBCBE8DD0F13C625CB779B6FC1927C",
+      "Asset": "lib/net462/Microsoft.Bcl.AsyncInterfaces.dll",
+      "File": "assets/lib/Microsoft.Bcl.AsyncInterfaces.dll",
+      "SHA256": "80678203BD0203A6594F4E330B22543C0DE5059382BB1C9334B7868B8F31B1BC",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.formats.asn1",
+      "Version": "8.0.2",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.formats.asn1/8.0.2/system.formats.asn1.8.0.2.nupkg",
+      "PackageSHA256": "4D5A09377F5CB02CDAD97B732C4278CD38ACF420B91453793AABC8C213E438DF",
+      "Asset": "lib/net462/System.Formats.Asn1.dll",
+      "File": "assets/lib/System.Formats.Asn1.dll",
+      "SHA256": "7781E1B4A1A583554158F2D9298778D62FA5790EED56F09E6CC895D0DAA455BA",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.buffers",
+      "Version": "4.5.1",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.buffers/4.5.1/system.buffers.4.5.1.nupkg",
+      "PackageSHA256": "C30B3DD2C7E2F4CEE4B823D692FD42118309B42AB1F5007F923D329A5B0D6B12",
+      "Asset": "lib/net461/System.Buffers.dll",
+      "File": "assets/lib/System.Buffers.dll",
+      "SHA256": "ACCCCFBE45D9F08FFEED9916E37B33E98C65BE012CFFF6E7FA7B67210CE1FEFB",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.memory",
+      "Version": "4.5.5",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.memory/4.5.5/system.memory.4.5.5.nupkg",
+      "PackageSHA256": "10F43DA352A29FB2B3188E4EDD4DCF5100194C8B526E4F61FE2E2B5623775A22",
+      "Asset": "lib/net461/System.Memory.dll",
+      "File": "assets/lib/System.Memory.dll",
+      "SHA256": "BF3FB84664F4097F1A8A9BC71A51DCF8CF1A905D4080A4D290DA1730866E856F",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.runtime.compilerservices.unsafe",
+      "Version": "6.0.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg",
+      "PackageSHA256": "6C41B53E70E9EEE298CFF3A02CE5ACDD15B04125589BE0273F0566026720A762",
+      "Asset": "lib/net461/System.Runtime.CompilerServices.Unsafe.dll",
+      "File": "assets/lib/System.Runtime.CompilerServices.Unsafe.dll",
+      "SHA256": "37768488E8EF45729BC7D9A2677633C6450042975BB96516E186DA6CB9CD0DCF",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.numerics.vectors",
+      "Version": "4.5.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.numerics.vectors/4.5.0/system.numerics.vectors.4.5.0.nupkg",
+      "PackageSHA256": "A9D49320581FDA1B4F4BE6212C68C01A22CDF228026099C20A8EABEFCF90F9CF",
+      "Asset": "lib/net46/System.Numerics.Vectors.dll",
+      "File": "assets/lib/System.Numerics.Vectors.dll",
+      "SHA256": "1D3EF8698281E7CF7371D1554AFEF5872B39F96C26DA772210A33DA041BA1183",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.threading.tasks.extensions",
+      "Version": "4.5.4",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg",
+      "PackageSHA256": "A304A963CC0796C5179F9C6B7D8022BBCE3B2FA7C029EB6196F631F7B462D678",
+      "Asset": "lib/net461/System.Threading.Tasks.Extensions.dll",
+      "File": "assets/lib/System.Threading.Tasks.Extensions.dll",
+      "SHA256": "4F81FFD0DC7204DB75AFC35EA4291769B07C440592F28894260EEA76626A23C6",
+      "License": "MIT"
+    },
+    {
+      "Package": "system.valuetuple",
+      "Version": "4.5.0",
+      "Source": "https://api.nuget.org/v3-flatcontainer/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg",
+      "PackageSHA256": "9E21FA9767D4E76BC0CEE065C1D40CC34384A114BFEC4D70E6C981168A926802",
+      "Asset": "lib/net47/System.ValueTuple.dll",
+      "File": "assets/lib/System.ValueTuple.dll",
+      "SHA256": "E905D102585B22C6DF04F219AF5CBDBFA7BC165979E9788B62DF6DCC165E10F4",
+      "License": "MIT"
+    }
+  ]
+}
