@@ -1,0 +1,280 @@
+/* ============================================================================
+ * TradeChannel 设计令牌层（Design Tokens）— 0.21
+ * ============================================================================
+ * 引入顺序：必须在 app.css 与 forms.css 之前引入。
+ *    <link rel="stylesheet" href="tokens.css">
+ *    <link rel="stylesheet" href="app.css">
+ *    <link rel="stylesheet" href="forms.css">
+ * 本文件不产生任何选择器样式，只声明自定义属性（CSS 变量），因此不会覆盖
+ * 任何既有规则，可以安全地先于其他样式表加载。
+ *
+ * 深色主题只覆盖「颜色令牌」；间距 / 圆角 / 字号 / 控件高度 / 阴影 / 动效 /
+ * 层级与主题无关，只在 :root 声明一次。
+ *
+ * 命名规则：
+ *   颜色  --color-<语义>-<角色>   （primary-bg / primary-ink，不是 blue-900）
+ *   间距  --space-<刻度>          （1=4px … 8=64px；4h 是 16 与 24 之间的半档 20px）
+ *   圆角  --radius-<尺寸>         （sm / md / lg / pill / round）
+ *   字号  --text-<角色>           （caption / sm / body / base / title / display）
+ *   字重  --weight-<角色>         （Segoe UI 静态字重只有 400/600/700）
+ *   高度  --control-<尺寸>
+ *
+ * 兼容：文件末「兼容别名」段保留 0.20.8 的 13 个旧变量名，值指向新令牌，
+ * 使 app.css / forms.css 可以分批迁移而不出现渲染空档。
+ * 已删除的死变量：--navy（仅被后置规则覆盖）、--line（无定义，回退 #444）、
+ * --fg（无定义，声明失效）。替换点见《迁移映射表》。
+ * ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+ * 1. 语义色 · 浅色（默认）
+ * ------------------------------------------------------------------------- */
+:root,
+[data-theme=light] {
+  color-scheme: light;
+
+  /* 底与面 */
+  --color-bg:            #f4f6fa;   /* 页面底 */
+  --color-surface:       #ffffff;   /* 卡片 / 侧栏 / 抽屉 / 对话框 */
+  --color-surface2:      #f0f3f8;   /* 次级底：表头、徽标、激活导航、分段控件槽 */
+
+  /* 文字 */
+  --color-ink:           #162038;   /* 正文 */
+  --color-muted:         #5c6780;   /* 辅助文字。0.20.8 的 #657189 对 surface2 仅 4.41:1，
+                                       11–12px 文本不达 AA；本值 5.09:1 */
+
+  /* 线 */
+  --color-border:        #e1e7f0;   /* 装饰性分隔线（不作为唯一识别依据） */
+  --color-border-strong: #7f8da0;   /* 控件边界与嵌套卡边框：3.38:1，达 1.4.11 的 3:1 */
+
+  /* 强调 */
+  --color-accent:        #2f5bea;   /* 链接、聚焦环、选中边框、图表线 */
+
+  /* 主操作（填充按钮） */
+  --color-primary-bg:    #17264d;
+  --color-primary-ink:   #ffffff;   /* 对 primary-bg 14.78:1 */
+  --color-primary-hover: #263d74;
+
+  /* 开关 */
+  --color-switch-off:       #7f8da0; /* 对 surface 3.38:1，达 1.4.11 的 3:1 */
+  --color-switch-off-hover: #6b7889;
+  --color-switch-knob:      #ffffff;
+
+  /* 浮层 */
+  --color-toast-bg:      #16274b;
+  --color-toast-ink:     #ffffff;
+  --color-toast-ring:    #16274b;    /* 浅色 Toast 边界本已 13.5:1，环取同底色即不可见；仅深色需要 */
+  --color-scrim-drawer:  #0b16394d;
+  --color-scrim-dialog:  #07112870;
+
+  /* 图表 */
+  --color-chart-ink:     #657189;   /* 空图表占位文字，对 surface 4.91:1 */
+  --color-series-1:      #648cf0;   /* 历史曲线：默认序列 */
+  --color-series-2:      #1f9479;   /* 历史曲线：TCP */
+  --color-series-3:      #a57ce0;   /* 历史曲线：代理 */
+
+  /* 语义三组 */
+  --color-success:       #157a4d;   /* 0.20.8 的 #168051 对 success-bg 仅 4.44:1，11px 徽标不达 AA */
+  --color-success-bg:    #e7f6ee;
+  --color-warning:       #a35b08;
+  --color-warning-bg:    #fff3dc;
+  --color-danger:        #bd3340;
+  --color-danger-bg:     #fdeef0;
+  --color-info:          #2f5bea;
+  --color-info-bg:       #e9efff;
+
+  /* --- 兼容别名（与深色块必须逐条成对，改一处必须改两处） --- */
+  --bg:      var(--color-bg);
+  --surface: var(--color-surface);
+  --surface2:var(--color-surface2);
+  --ink:     var(--color-ink);
+  --muted:   var(--color-muted);
+  --border:  var(--color-border);
+  --accent:  var(--color-accent);
+  --green:   var(--color-success);
+  --green-bg:var(--color-success-bg);
+  --amber:   var(--color-warning);
+  --amber-bg:var(--color-warning-bg);
+  --red:     var(--color-danger);
+  --shadow:  var(--shadow-float);
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. 语义色 · 深色（只覆盖颜色）
+ * ------------------------------------------------------------------------- */
+:root[data-theme=dark],
+[data-theme=dark] {
+  color-scheme: dark;
+
+  --color-bg:            #0c1220;
+  --color-surface:       #141e30;
+  --color-surface2:      #1c2940;
+
+  --color-ink:           #e5ebf7;
+  --color-muted:         #9baac2;   /* 对 surface2 6.25:1 */
+
+  --color-border:        #28364c;
+  --color-border-strong: #5a6d8a;   /* 3.17:1；嵌套卡边框对 surface2 见《验证报告》 */
+
+  --color-accent:        #91aaff;
+
+  /* 深色主按钮必须比卡片亮，否则主操作消失（0.20.8 实测 1.13:1） */
+  --color-primary-bg:    #91aaff;
+  --color-primary-ink:   #0c1220;   /* 8.37:1 */
+  --color-primary-hover: #7c99ff;   /* 6.25:1 */
+
+  --color-switch-off:       #5a6d8a;
+  --color-switch-off-hover: #6d80a0;
+  --color-switch-knob:      #ffffff;
+
+  --color-toast-bg:      #263a63;
+  --color-toast-ink:     #e5ebf7;
+  --color-toast-ring:    #55719f;   /* 对 --color-bg 3.02:1，保证浮层边界可辨 */
+  --color-scrim-drawer:  #0b16394d;
+  --color-scrim-dialog:  #07112870;
+
+  --color-chart-ink:     #9baac2;
+  --color-series-1:      #91aaff;
+  --color-series-2:      #66dab0;
+  --color-series-3:      #c9a8f5;
+
+  --color-success:       #66dab0;
+  --color-success-bg:    #17382f;
+  --color-warning:       #f6c66c;
+  --color-warning-bg:    #3a2d16;
+  --color-danger:        #ff9299;
+  --color-danger-bg:     #3a1c22;
+  --color-info:          #91aaff;
+  --color-info-bg:       #1b2a4a;
+
+  /* --- 兼容别名（与浅色块逐条对应） --- */
+  --bg:      var(--color-bg);
+  --surface: var(--color-surface);
+  --surface2:var(--color-surface2);
+  --ink:     var(--color-ink);
+  --muted:   var(--color-muted);
+  --border:  var(--color-border);
+  --accent:  var(--color-accent);
+  --green:   var(--color-success);
+  --green-bg:var(--color-success-bg);
+  --amber:   var(--color-warning);
+  --amber-bg:var(--color-warning-bg);
+  --red:     var(--color-danger);
+  --shadow:  var(--shadow-float);
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. 间距 · 4pt 网格（8pt 主阶梯 + 4pt 半档）
+ *    0.20.8 实测：321 处间距声明 / 34 个不同值 / 55% 不在 4pt 网格。
+ *    归并规则见《迁移映射表》「间距」一节。
+ * ------------------------------------------------------------------------- */
+:root {
+  --space-0:  2px;   /* 描边内衬、图标间隙；不参与布局节奏 */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-4h: 20px;  /* 半档：16 与 24 之间唯一允许值（卡片纵向内边距） */
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. 圆角 · 4 档（0.20.8 实测 49 处 / 16 档）
+ * ------------------------------------------------------------------------- */
+:root {
+  --radius-none: 0;
+  --radius-sm:   8px;    /* 按钮、输入框、下拉、分段控件槽 */
+  --radius-md:   12px;   /* 提示条、徽标块、选项卡、结果条 */
+  --radius-lg:   16px;   /* 卡片族、对话框、状态卡、响应面板 */
+  --radius-pill: 999px;  /* 开关、步进器、进度条（<24px 高的元素上与 50% 等效） */
+  --radius-round:50%;    /* 圆点、状态灯 */
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. 字号与行高 · 6 档（0.20.8 实测 100 处 / 22 档）
+ *    Segoe UI 为静态字重字体，仅提供 400 / 600 / 700；
+ *    声明 550 会实渲 600，声明 650 会实渲 700，因此令牌直接取整。
+ * ------------------------------------------------------------------------- */
+:root {
+  --text-caption: 11px;  /* 表头、徽标、单位、版本号 */
+  --text-sm:      12px;  /* 辅助说明、脚注、副标题 */
+  --text-body:    13px;  /* 次级页正文、表格正文 */
+  --text-base:    14px;  /* 主页面正文、线路名 */
+  --text-title:   18px;  /* h2 / 区块标题 / 度量数字 */
+  --text-display: 28px;  /* h1 / 状态标题 */
+
+  --leading-tight: 1.4;  /* 标题 */
+  --leading-body:  1.6;  /* 正文（0.20.8 中 1.5 / 1.55 / 1.6 / 1.7 / 1.85 并存） */
+  --leading-loose: 1.7;  /* 长段说明 */
+
+  --weight-regular:  400;
+  --weight-medium:   500;  /* 静态字重下实渲 400，仅用于语义标注 */
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --tracking-tight: -0.4px;  /* 大字号收紧 */
+  --tracking-normal: 0;
+  --tracking-wide:  0.6px;   /* 小字号标题 */
+  --tracking-caps:  1px;     /* 全大写/全角标签 */
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. 控件高度 · 3 档（0.20.8 实测 7 档：25.6 / 24 / 32 / 33.2 / 41 / 42.4 / 44）
+ * ------------------------------------------------------------------------- */
+:root {
+  --control-sm:     32px;  /* 分段控件、范围切换、small 按钮 */
+  --control-md:     40px;  /* 输入框、下拉、标准按钮（全站表单密度基准） */
+  --control-lg:     48px;  /* 仅首屏状态卡与对话框主操作 */
+  --control-switch: 24px;  /* 开关独立，不参与三档 */
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. 阴影
+ * ------------------------------------------------------------------------- */
+:root {
+  --shadow-float:   0 20px 70px #111e3b24;  /* 抽屉 / 对话框 / Toast */
+  --shadow-control: 0 1px 3px #0002;        /* 开关滑块、小控件 */
+  --shadow-seg:     0 1px 4px #00000012;    /* 分段控件选中块 */
+  --shadow-ring:    0 0 0 5px #38d69a16;    /* 状态灯外发光 */
+}
+:root[data-theme=dark],
+[data-theme=dark] {
+  --shadow-float: 0 20px 70px #0005;
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. 动效
+ * ------------------------------------------------------------------------- */
+:root {
+  --duration-fast: 150ms;  /* 悬停、按压 */
+  --duration-base: 250ms;  /* 展开、淡入 */
+  --duration-slow: 400ms;  /* 浮层进出 */
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --ease-out:      cubic-bezier(0, 0, .2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+ * 9. 层级
+ * ------------------------------------------------------------------------- */
+:root {
+  --z-sticky:  5;   /* 吸底操作条 */
+  --z-rail:    15;  /* 窄窗顶部导航条 */
+  --z-drawer:  20;  /* 抽屉 */
+  --z-dialog:  40;  /* 对话框 */
+  --z-toast:   60;  /* Toast */
+  --z-hint:    70;  /* 悬浮说明：要在 Toast 之上，避免被状态提示盖住 */
+}
+
+/* ---------------------------------------------------------------------------
+ * 10. 悬浮说明（0.22.0 B1）
+ *    只组合既有令牌，不引入新颜色；深浅色因此自动成立。
+ * ------------------------------------------------------------------------- */
+:root {
+  --hint-bg:     var(--color-surface);
+  --hint-ink:    var(--color-ink);
+  --hint-border: var(--color-border-strong);
+  --hint-shadow: var(--shadow-float);
+  --hint-text:   var(--text-sm);
+}

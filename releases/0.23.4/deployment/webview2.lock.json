@@ -1,0 +1,29 @@
+﻿{
+  "Version": "1.0.4258.31",
+  "Package": "Microsoft.Web.WebView2",
+  "SchemaVersion": 1,
+  "PackageSHA256": "56F7F4B8BF9AEE4B8EFEFBBDD4F67D5F74EBD1B100ED0806DA71BF76AF481AA9",
+  "Source": "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4258.31/microsoft.web.webview2.1.0.4258.31.nupkg",
+  "Assets": [
+    {
+      "Asset": "LICENSE.txt",
+      "File": "assets/webview2/LICENSE.txt",
+      "SHA256": "0AF8F1B807512AAE39C2AC1AA4D0CAE65CABECB6FD554B8439A5162A0D6ECA55"
+    },
+    {
+      "Asset": "lib/net462/Microsoft.Web.WebView2.Wpf.dll",
+      "File": "assets/webview2/Microsoft.Web.WebView2.Wpf.dll",
+      "SHA256": "F05A06BBC03AFCB83DC98168B8D343D9015B2A533EDBFAC90C52D88894B653E4"
+    },
+    {
+      "Asset": "runtimes/win-x64/native/WebView2Loader.dll",
+      "File": "assets/webview2/WebView2Loader.dll",
+      "SHA256": "3426DCC55FDFB8B5E7AC623CF33B4CCF283FBF68A0C5A65BDDFDB4D749A8ABEE"
+    },
+    {
+      "Asset": "lib/net462/Microsoft.Web.WebView2.Core.dll",
+      "File": "assets/webview2/Microsoft.Web.WebView2.Core.dll",
+      "SHA256": "D60E6E94245078CB56E44EBD5F360DC04BF18E460136BE93BFC4CFCA43B98505"
+    }
+  ]
+}

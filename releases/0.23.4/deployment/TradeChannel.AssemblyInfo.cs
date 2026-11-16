@@ -1,0 +1,5 @@
+[assembly:System.Reflection.AssemblyVersion("0.23.1.0")]
+[assembly:System.Reflection.AssemblyFileVersion("0.23.1.0")]
+[assembly:System.Reflection.AssemblyInformationalVersion("0.23.1-preview")]
+[assembly:System.Reflection.AssemblyProduct("TradeChannel")]
+[assembly:System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]

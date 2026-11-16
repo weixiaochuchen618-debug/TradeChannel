@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TradeChannel · 蛛（Spider）图标 · 主矢量源文件
+  ============================================================
+  作者：Claude（设计稿）   日期：2026-10-11   版本：1.0（定稿候选）
+  许可：TradeChannel 项目内部使用。蜘蛛为原创几何造型（八腿/四对，符合蜘蛛解剖），
+        发布前建议做一次商标近似检索（蜘蛛题材品牌：SilkSpider 等）。
+  ------------------------------------------------------------
+  用法：
+    通用稿（zMaster）    → 用于 32px 及以上（窗口/任务栏/快捷方式/安装包/32+ 托盘）
+    简化稿（zMaster16）  → 用于 16px、24px 托盘与任务栏小图标
+    体色三态：白（主图标，固定）/ 绿（Connected）/ 琥珀（过渡态）/ 灰（静默态）
+    换色规则：只替换 <g id="legs"> 的 stroke 与 <ellipse id="body"> 的 fill，其余不动
+  ============================================================
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <!-- 腿：八条（头胸部四对附肢），左右对称 -->
+    <g id="legs" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M102 108 L74 86 L64 58"/>
+      <path d="M92 128 L52 122 L36 140"/>
+      <path d="M96 148 L66 164 L58 192"/>
+      <path d="M104 160 L86 184 L84 212"/>
+      <path d="M154 108 L182 86 L192 58"/>
+      <path d="M164 128 L204 122 L220 140"/>
+      <path d="M160 148 L190 164 L198 192"/>
+      <path d="M152 160 L170 184 L172 212"/>
+    </g>
+    <!-- 眼睛：双圆 + 高光（高光固定在左上，视线感），主图标与状态态共用 -->
+    <g id="eyes">
+      <circle cx="114" cy="128" r="11" fill="#0F1A38"/>
+      <circle cx="142" cy="128" r="11" fill="#0F1A38"/>
+      <circle cx="110" cy="124" r="3.5" fill="#FFFFFF"/>
+      <circle cx="138" cy="124" r="3.5" fill="#FFFFFF"/>
+    </g>
+    <!-- 16/24px 简化稿的腿：减为六段外轮廓（每侧上中下一主三段），眼睛放大、腿加粗 -->
+    <g id="legs16" stroke-width="20" stroke-linecap="round" fill="none">
+      <path d="M96 106 L56 72"/><path d="M88 128 L40 128"/><path d="M96 150 L56 184"/>
+      <path d="M160 106 L200 72"/><path d="M168 128 L216 128"/><path d="M160 150 L200 184"/>
+    </g>
+    <g id="eyes16">
+      <circle cx="112" cy="124" r="14" fill="#0F1A38"/>
+      <circle cx="144" cy="124" r="14" fill="#0F1A38"/>
+    </g>
+  </defs>
+
+  <!-- ==================== 通用稿（32px+） ==================== -->
+  <g id="zMaster">
+    <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+    <use href="#legs" stroke="#FFFFFF"/>
+    <ellipse id="body" cx="128" cy="134" rx="45" ry="38" fill="#FFFFFF"/>
+    <use href="#eyes"/>
+  </g>
+
+  <!-- ==================== 简化稿（16/24px） ==================== -->
+  <g id="zMaster16" visibility="hidden">
+    <circle cx="128" cy="128" r="122" fill="#0F1A38"/>
+    <use href="#legs16" stroke="#FFFFFF"/>
+    <ellipse cx="128" cy="130" rx="52" ry="44" fill="#FFFFFF"/>
+    <use href="#eyes16"/>
+  </g>
+
+  <!-- ==================== 色板（实施时引用） ==================== -->
+  <!--
+    底板：#0F1A38（深海军蓝，全部尺寸同底）
+    体色：
+      白   #FFFFFF   主图标（任务栏/窗口/快捷方式/安装包）——固定，不随状态变
+      绿   #22C55E   Connected
+      琥珀 #F5A524   Connecting / Applying / Disconnecting
+      灰   #98A2B3   Disconnected / Unconfigured / Fault / Loading（托盘默认）
+  -->
+</svg>

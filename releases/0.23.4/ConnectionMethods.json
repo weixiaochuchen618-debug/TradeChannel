@@ -1,0 +1,91 @@
+{
+  "SchemaVersion": 1,
+  "Kind": "TradeChannel.ConnectionMethods",
+  "ContractVersion": 1,
+  "LinuxTargets": [
+    { "Id": "ubuntu", "Version": "24.04" },
+    { "Id": "debian", "Version": "13" }
+  ],
+  "Architectures": [
+    { "Id": "amd64", "Aliases": ["amd64", "x86_64"], "ElfMachine": 62 },
+    { "Id": "arm64", "Aliases": ["arm64", "aarch64"], "ElfMachine": 183 }
+  ],
+  "Methods": [
+    {
+      "Id": "Udp",
+      "DisplayName": "标准连接",
+      "TechnicalName": "UDP（WireGuard）",
+      "TransportType": "udp-direct",
+      "NetworkProtocol": "Udp",
+      "PreferenceOrder": 10,
+      "RequiresTransport": false,
+      "ServerPlatforms": ["linux"],
+      "ServerArchitectures": ["amd64", "arm64"],
+      "Handlers": {
+        "ValidateTransport": "direct-transport-v1",
+        "ConfigureClient": "wireguard-direct-v1",
+        "DeploymentRequest": "linux-backend-v1",
+        "Deploy": "linux-backend-v1",
+        "Probe": "candidate-profile-v1"
+      },
+      "LinuxHandlers": {
+        "ValidatePlan": "direct-plan-v1",
+        "ConfigureServer": "wireguard-direct-v1",
+        "PublicParameters": "direct-parameters-v1"
+      },
+      "Deployment": {
+        "Inspect": { "Action": "inspect", "Required": [], "Optional": [], "Mutates": false },
+        "Plan": { "Action": "plan", "Required": ["Name", "PublicEndpoint", "TunnelSubnet", "ClientRequest"], "Optional": [], "Mutates": true },
+        "Apply": { "Action": "apply", "Required": ["PlanId"], "Optional": [], "Mutates": true },
+        "Probe": { "Action": "status", "Required": [], "Optional": ["NetworkProbe", "ProbeRepeats", "CaptureSeconds", "ProbeRelayPort", "ProbeSourceIPv4"], "Mutates": false }
+      },
+      "Probe": {
+        "ProfileId": "Udp",
+        "Transport": "WireGuardUdp",
+        "Handler": "candidate-profile-v1",
+        "ChangesActiveConnection": false,
+        "RequiresBoundPathEvidence": true
+      }
+    },
+    {
+      "Id": "Tcp",
+      "DisplayName": "兼容连接",
+      "TechnicalName": "TCP（WireGuard over VLESS + REALITY）",
+      "TransportType": "tcp-reality",
+      "NetworkProtocol": "Tcp",
+      "PreferenceOrder": 20,
+      "RequiresTransport": true,
+      "ServerPlatforms": ["linux"],
+      "ServerArchitectures": ["amd64", "arm64"],
+      "Handlers": {
+        "ValidateTransport": "reality-transport-v1",
+        "ConfigureClient": "wireguard-reality-v1",
+        "DeploymentRequest": "linux-backend-v1",
+        "Deploy": "linux-backend-v1",
+        "Probe": "candidate-profile-v1"
+      },
+      "LinuxHandlers": {
+        "ValidatePlan": "reality-plan-v1",
+        "ConfigureServer": "wireguard-reality-v1",
+        "PublicParameters": "reality-parameters-v1"
+      },
+      "Deployment": {
+        "Inspect": { "Action": "inspect", "Required": [], "Optional": [], "Mutates": false },
+        "Plan": { "Action": "plan", "Required": ["Name", "PublicEndpoint", "TunnelSubnet", "ClientRequest", "Transport"], "Optional": [], "Mutates": true },
+        "Apply": { "Action": "apply", "Required": ["PlanId"], "Optional": [], "Mutates": true },
+        "AddPlan": { "Action": "transport_plan", "Required": ["Transport"], "Optional": [], "Mutates": true },
+        "AddApply": { "Action": "transport_apply", "Required": ["PlanId", "ApprovedChangeDigest"], "Optional": [], "Mutates": true },
+        "Parameters": { "Action": "transport_info", "Required": ["ClientPublicKey", "ServerPublicKey"], "Optional": [], "Mutates": false },
+        "Options": { "Action": "transport_options", "Required": ["ServerPublicKey", "ServerName"], "Optional": ["CandidatePorts", "CandidateServerNames"], "Mutates": false },
+        "Probe": { "Action": "status", "Required": [], "Optional": ["NetworkProbe", "ProbeRepeats", "CaptureSeconds", "ProbeRelayPort", "ProbeSourceIPv4"], "Mutates": false }
+      },
+      "Probe": {
+        "ProfileId": "Tcp",
+        "Transport": "WireGuardOverVlessReality",
+        "Handler": "candidate-profile-v1",
+        "ChangesActiveConnection": false,
+        "RequiresBoundPathEvidence": true
+      }
+    }
+  ]
+}

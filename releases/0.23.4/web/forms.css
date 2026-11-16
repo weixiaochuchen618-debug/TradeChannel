@@ -1,0 +1,212 @@
+/* Shared presentation for the main pages and all task workflows.
+ * 依赖：tokens.css（必须在 forms.css 之前引入）。
+ * 已令牌化：主题相关颜色（图表占位、语义文字、历史图例三色）、控件边界（--color-border-strong）、
+ *          命中刻度的字号（11/12/13/14）、字重、行高、层级。
+ * 仍为字面量：未命中刻度的字号（12.5/15/17）与圆角（10）、间距（.wf-stack 的 11px、
+ *          .wf-rule 的 7px、.workflow-actions 的负 margin）——全量归一方案见《迁移映射表》§8，
+ *          本轮不执行；吸底条负 margin 属布局缺陷（P2-5），留给结构层。
+ * 注意：本文件在 index.html 中位于 app.css 之后，同优先级下覆盖 app.css
+ *      （.sidebar / .nav / .hero 三处）。这是历史成因，令牌层不改动其顺序。 */
+.sidebar { padding-top: 22px; }
+.nav { gap: 13px; padding: 12px 14px; }
+.nav svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+main { margin: 0 auto; }
+main:focus { outline: none; }
+.page-head { margin-bottom: 22px; }
+.section-head.first { margin-top: 0; }
+.hero { padding-top: 27px; margin-bottom: 12px; }
+.chart-empty { color: var(--color-chart-ink); font-size: var(--text-sm); height: 43px; display: flex; align-items: center; }
+.protection-line { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: var(--text-sm); padding: 0 4px; }
+.protection-line button { margin-left: auto; }
+.good-text { color: var(--color-success); }
+.warn-text { color: var(--color-warning); }
+.bad-text { color: var(--color-danger); }
+.routing-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 19px 24px; }
+.routing-summary .flow { display: grid; gap: 5px; padding: 0 22px; border: 0; border-left: 1px solid var(--border); }
+.routing-summary .flow:first-child { padding-left: 0; border: 0; }
+.routing-summary .flow .to { overflow-wrap: anywhere; }
+.table-scroll { overflow-x: auto; }
+.line-table td:last-child { white-space: nowrap; }
+.line-table .line-name { overflow-wrap: anywhere; }
+.grid-two .actions { margin-top: 14px; }
+.tool-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.tool-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 20px; }
+.tool-link strong { display: block; font-weight: var(--weight-semibold); font-size: var(--text-base); }
+.tool-link small { display: block; color: var(--muted); font-size: var(--text-sm); margin-top: 6px; }
+.tool-link > span:last-child { color: var(--muted); }
+.settings-footer { padding: 16px 0 0; text-align: right; }
+.breadcrumb { margin: -9px 0 10px -10px; }
+.busy-line { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; color: var(--muted); font-size: var(--text-body); }
+.spinner { width: 15px; height: 15px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: var(--radius-round); animation: spin 1s linear infinite; flex-shrink: 0; }
+.workflow { display: flex; flex-direction: column; gap: 18px; }
+.workflow > button { align-self: flex-start; }
+.wf-card { padding: 24px; overflow: visible; }
+/* 嵌套卡：深色下 --surface2 对 --surface 仅 1.35:1，靠底色分不出层级，
+ * 因此只给嵌套卡换 --color-border-strong 的边框（不放大、不改圆角、不动其他边框）。
+ * 只作用于「未标注角色」的卡：否则卡片里的 Pill/Chip 会被二次套成灰底 16px 内边距。 */
+.wf-card .wf-card:not([data-role]) { background: var(--surface2); padding: 16px; border-radius: 10px; border-color: var(--color-border-strong); }
+.wf-stack { display: flex; flex-direction: column; gap: 11px; min-width: 0; }
+/* 老路径：没有 data-colspec（老快照 / 未登记形态）→ 与 0.22.0 完全一致 */
+.wf-grid:not([data-colspec]), .wf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-width: 0; }
+.wf-grid:not([data-colspec]) > .wf-stack { flex: 1 1 260px; }
+/* 标签列：WPF 侧是 128px 定宽 + SemiBold（12.5px）。网页此前是 116px / 400，
+ * 标签与输入值同权重，"标签—输入"的层级消失。 */
+.wf-grid > .wf-text:first-child { font-weight: var(--weight-semibold); }
+.wf-grid:not([data-colspec]) > .wf-text:first-child { min-width: 128px; }
+.wf-grid:not([data-colspec]) > .wf-card { flex: 1 1 290px; }
+.wf-grid:not([data-colspec]) > input, .wf-grid:not([data-colspec]) > textarea { flex: 1 1 240px; }
+.wf-grid:not([data-colspec]) > button { flex-shrink: 0; }
+/* 行内尾随按钮吸右。宿主侧这些行几乎都是 Grid @('*','Auto')：首列吃满剩余宽度、
+   末列贴右缘。投影只带列数（Columns=2）不带 * / Auto 语义，于是按钮跟着文字跑，
+   域名长短不同就成锯齿。CSP 禁止内联样式，只能用结构选择器；:last-child 限定为
+   行内最后一个按钮，输入框+按钮的组合行不受影响（输入框本身已 flex:1）。
+   0.23.0：新路径的列位由 grid-template-columns 决定，这条补丁只留给老路径。 */
+.wf-grid:not([data-colspec]) > button:last-child { margin-left: auto; }
+.wf-row > button { flex-shrink: 0; }
+/* 新路径：真 CSS Grid。列宽语义来自宿主 ColumnDefinitions，不换行 —— 行内所有元素
+   共享一个网格行，右列按钮的 x 坐标才恒定。minmax(0,1fr) 让中列可以压到 0 宽、
+   让文字在列内换行，而不是把整行挤到下一行。 */
+.wf-grid[data-colspec] { display: grid; align-items: center; column-gap: 20px; row-gap: 12px; min-width: 0; }
+.wf-grid[data-colspec] > * { min-width: 0; }
+.wf-grid[data-colspec] > button, .wf-grid[data-colspec] > select { max-width: 100%; }
+/* 勾选框列按宿主意图顶对齐（AgentRow 写了 VerticalAlignment=Top，投影层不带这个字段，
+   所以按控件类型给出唯一正确的对齐）。 */
+.wf-grid[data-colspec] > .wf-check { align-self: start; }
+/* 列宽：与宿主形态一一对应，共 12 种。新增形态必须同时补这里和 app.js 的 COLSPEC，
+   否则降级为 flex（不会错位，只是不精确）；tests/Test-WebForms.ps1 静态对照会报红。 */
+.wf-grid[data-colspec="*|Auto"] { grid-template-columns: minmax(0,1fr) auto; }
+.wf-grid[data-colspec="*|Auto|Auto"] { grid-template-columns: minmax(0,1fr) auto auto; }
+.wf-grid[data-colspec="Auto|*|Auto"] { grid-template-columns: auto minmax(0,1fr) auto; }
+.wf-grid[data-colspec="Auto|*"] { grid-template-columns: auto minmax(0,1fr); }
+.wf-grid[data-colspec="*|*"] { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.wf-grid[data-colspec="Auto|34px|34px"] { grid-template-columns: auto 34px 34px; }
+.wf-grid[data-colspec="*|90px|120px|150px"] { grid-template-columns: minmax(0,1fr) 90px 120px 150px; }
+.wf-grid[data-colspec="96px|*"] { grid-template-columns: 96px minmax(0,1fr); }
+.wf-grid[data-colspec="128px|*"] { grid-template-columns: 128px minmax(0,1fr); }
+.wf-grid[data-colspec="*|260px|Auto"] { grid-template-columns: minmax(0,1fr) 260px auto; }
+.wf-grid[data-colspec="*|16px|*|16px|*"] { grid-template-columns: minmax(0,1fr) 16px minmax(0,1fr) 16px minmax(0,1fr); }
+.wf-grid[data-colspec="*|16px|*"] { grid-template-columns: minmax(0,1fr) 16px minmax(0,1fr); }
+.wf-grid[data-colspec="*|32px|*"] { grid-template-columns: minmax(0,1fr) 32px minmax(0,1fr); }
+/* 16px 分隔列本身就是间距，再叠 column-gap 会变成 56px */
+.wf-grid[data-colspec="*|16px|*"], .wf-grid[data-colspec="*|16px|*|16px|*"] { column-gap: 0; }
+/* 列坐标：投影层从 0.20 起就带 Row/Column，前端一直没读过；读它之后
+   UpdateResponsiveLayouts 算好的响应式布局（例如分段控件落到第二行并跨 3 列）才生效。 */
+.wf-grid[data-colspec] > [data-col="0"] { grid-column-start: 1 }
+.wf-grid[data-colspec] > [data-col="1"] { grid-column-start: 2 }
+.wf-grid[data-colspec] > [data-col="2"] { grid-column-start: 3 }
+.wf-grid[data-colspec] > [data-col="3"] { grid-column-start: 4 }
+.wf-grid[data-colspec] > [data-col="4"] { grid-column-start: 5 }
+.wf-grid[data-colspec] > [data-col="5"] { grid-column-start: 6 }
+.wf-grid[data-colspec] > [data-col="6"] { grid-column-start: 7 }
+.wf-grid[data-colspec] > [data-col="7"] { grid-column-start: 8 }
+.wf-grid[data-colspec] > [data-col="8"] { grid-column-start: 9 }
+.wf-grid[data-colspec] > [data-col="9"] { grid-column-start: 10 }
+.wf-grid[data-colspec] > [data-col="10"] { grid-column-start: 11 }
+.wf-grid[data-colspec] > [data-col="11"] { grid-column-start: 12 }
+.wf-grid[data-colspec] > [data-row="0"] { grid-row-start: 1 }
+.wf-grid[data-colspec] > [data-row="1"] { grid-row-start: 2 }
+.wf-grid[data-colspec] > [data-row="2"] { grid-row-start: 3 }
+.wf-grid[data-colspec] > [data-row="3"] { grid-row-start: 4 }
+.wf-grid[data-colspec] > [data-span="2"] { grid-column-end: span 2 }
+.wf-grid[data-colspec] > [data-span="3"] { grid-column-end: span 3 }
+.wf-grid[data-colspec] > [data-span="4"] { grid-column-end: span 4 }
+/* 对齐意图（HorizontalAlignment=Left/Right/Center 才会下发，Stretch 不下发） */
+.wf-grid[data-colspec] > [data-align="end"] { justify-self: end; text-align: right }
+.wf-grid[data-colspec] > [data-align="center"] { justify-self: center; text-align: center }
+.wf-grid[data-colspec] > [data-align="start"] { justify-self: start }
+.wf-row > [data-align="end"] { margin-left: auto }
+/* Border 的角色：宿主用 Tag.TCRole 显式标注，未标注 = 普通卡片（保持现状）。 */
+.wf-card[data-role="chip"] {
+  display: inline-flex; align-items: center; width: max-content; max-width: 100%;
+  padding: 3px 9px; border-radius: 10px; flex: none;
+  background: var(--surface2); border: 1px solid var(--color-border);
+  font-size: 11.5px; font-weight: var(--weight-semibold); line-height: 1.45;
+}
+.wf-card[data-role="chip"] > .wf-text { font-size: 11.5px; line-height: 1.45; white-space: nowrap; }
+.wf-card[data-role="chip"].wf-tone-ok { background: var(--color-success-bg); border-color: var(--color-success); color: var(--color-success) }
+.wf-card[data-role="chip"].wf-tone-warn, .wf-card[data-role="chip"].wf-warning { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning) }
+.wf-card[data-role="chip"].wf-tone-bad { background: var(--color-danger-bg); border-color: var(--color-danger); color: var(--color-danger) }
+.wf-card[data-role="chip"].wf-tone-info { background: var(--surface2); border-color: var(--color-accent); color: var(--color-accent) }
+/* 图标位/序号位：定宽定高、无内边距、内容居中 —— 对应 IconTile 38/40、步骤序号 26、圆点 32 */
+.wf-card[data-role="tile"] {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; flex: none; overflow: hidden;
+  width: var(--wf-tile,38px); height: var(--wf-tile,38px); border-radius: 10px;
+}
+.wf-card[data-role="tile"] > .wf-text { font-size: 13px; line-height: 1; white-space: nowrap; text-align: center; }
+.wf-card[data-role="tile"][data-size="26"] { --wf-tile:26px; border-radius: 13px }
+.wf-card[data-role="tile"][data-size="32"] { --wf-tile:32px; border-radius: 16px }
+.wf-card[data-role="tile"][data-size="34"] { --wf-tile:34px }
+.wf-card[data-role="tile"][data-size="38"] { --wf-tile:38px }
+.wf-card[data-role="tile"][data-size="40"] { --wf-tile:40px }
+/* 分组框：分段控件的浅底外框 —— 对应 Segments(Padding 3, 圆角 9) */
+.wf-card[data-role="group"] { display: inline-flex; padding: 3px; border-radius: 9px; background: var(--surface2); flex: none; width: max-content; max-width: 100%; }
+/* 图标：宿主 Icon() 的 24×24 几何原样还原，颜色跟随文字色 */
+.wf-icon { width: 18px; height: 18px; flex: none; display: block; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.wf-card[data-role="tile"] > .wf-icon { width: 50%; height: 50%; }
+/* 0.22.0 B4：服务器页的分区切换（设备与邀请 | 连接与维护 | 管理资料）。
+   外观是分段控件，语义是 tablist；当前项由宿主标 Tone=primary。 */
+.wf-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--surface2); }
+.wf-tabs > button { flex-shrink: 0; margin: 0; }
+.wf-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-body); line-height: var(--leading-loose); }
+.wf-text:empty, .wf-grid:empty, .wf-row:empty, .wf-stack:empty { display: none; }
+h2.wf-text { font-size: 17px; font-weight: var(--weight-bold); }
+h3.wf-text { font-size: 15px; font-weight: var(--weight-semibold); }
+.workflow > .wf-grid > .wf-text { color: var(--muted); font-size: var(--text-sm); }
+.wf-warning { background: var(--color-warning-bg); border-color: var(--color-warning); }
+/* 提示的严重程度：宿主一直在发 Tone=ok|warn|bad|info，网页此前只认 warn，
+ * info / ok / bad 全部退化成白卡（嵌套时变灰卡），严重程度只剩文字。 */
+.wf-tone-ok { background: var(--color-success-bg); border-color: var(--color-success); }
+.wf-tone-info { background: var(--surface2); border-color: var(--color-accent); }
+.wf-tone-bad { background: var(--color-danger-bg); border-color: var(--color-danger); border-left-width: 3px; }
+/* 栅格第二列右对齐：WPF 的 Grid('*','Auto') 把提示靠右，投影只给出列数。
+ * 只在"标题 + 提示"这一种形状上生效（首个子项是 h3 标题），避免把键值对的值列推到右端。
+ * 0.23.0：新路径靠真列宽 + data-align 表达，这条只留给老路径。 */
+.wf-grid:not([data-colspec])[data-cols="2"] > h3.wf-text + .wf-text { margin-left: auto; text-align: right; }
+.wf-rule { border: 0; border-top: 1px solid var(--border); width: 100%; margin: 7px 0; }
+input, textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--color-border-strong); border-radius: 9px; padding: 10px 13px; min-width: 0; }
+input[type=text], input[type=password], textarea { width: 100%; }
+input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input:disabled, textarea:disabled { opacity: .6; }
+input:read-only, textarea:read-only { background: var(--surface2); }
+/* 交易程序输入框是拖放目标：虚线边框提示可以直接把 .exe 拖进来。 */
+input[data-control-name="TradeProgramInput"] { border-style: dashed; }
+/* 只有真的把文件拖到这个框上方时，才提示「可以放进来」；常态保持普通文本光标，
+ * 否则输入框看起来像不能点进去打字。 */
+input[data-control-name="TradeProgramInput"].drop-hover { cursor: copy; border-color: var(--accent); }
+textarea { resize: vertical; min-height: 110px; line-height: var(--leading-body); }
+.wf-stack > button { align-self: flex-start; }
+.wf-stack > select { align-self: flex-start; max-width: 100%; min-width: 180px; }
+/* 下拉与输入框共用同一档 flex：此前 select 没有 flex，被压到内容宽（实测 107px），
+ * 与同一行的 810px 输入框并排，看起来像两种控件。 */
+.wf-grid > select { flex: 1 1 240px; min-width: 0; max-width: 100%; }
+.wf-grid[data-colspec] > select { flex: none; }
+.wf-check { display: flex; align-items: flex-start; gap: 10px; font-size: var(--text-body); cursor: pointer; }
+.wf-check input { flex-shrink: 0; width: 17px; height: 17px; margin: 3px 0 0; accent-color: var(--accent); }
+.wf-check:has(input:disabled) { cursor: default; color: var(--muted); }
+.password-field { display: flex; gap: 8px; width: 100%; }
+.password-field input { flex: 1; }
+.password-field button { flex-shrink: 0; }
+.workflow details { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.workflow summary { cursor: pointer; color: var(--muted); font-size: var(--text-body); font-weight: var(--weight-semibold); padding: 12px 15px; }
+.workflow details[open] > summary { color: var(--ink); border-bottom: 1px solid var(--border); }
+.workflow details > .wf-stack { padding: 16px; }
+.wf-progress { display: grid; gap: 8px; font-size: var(--text-sm); color: var(--muted); }
+.wf-progress progress { width: 100%; height: 8px; border: 0; border-radius: 10px; accent-color: var(--accent); }
+/* 吸底条此前左右各外扩 12px（负 margin），与卡片不在同一基线，且没有投影，
+ * 内容从下方穿过时看不出这是一条浮起来的操作栏。 */
+.workflow-actions { position: sticky; bottom: 0; margin: 22px 0 0; padding: 16px 0; border-top: 1px solid var(--border); background: var(--bg); display: flex; flex-wrap: wrap; gap: 10px; z-index: var(--z-sticky); box-shadow: 0 -8px 20px #00000010; }
+/* 名单页的吸底条：计数在左、按钮在右；部署操作条没有文本节点，不受影响。 */
+.workflow-actions > .wf-text:first-child { margin-right: auto; align-self: center; color: var(--muted); }
+.dialog { max-height: calc(100vh - 50px); overflow: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 1000px) { .tool-grid { grid-template-columns: 1fr; } .tool-link { padding: 16px 20px; } }
+@media (max-width: 800px) { .routing-summary { grid-template-columns: 1fr; padding: 10px 20px; } .routing-summary .flow { display: flex; padding: 12px 0; border-left: 0; border-top: 1px solid var(--border); } .wf-card { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.recommendation{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:10px}.quality-history{margin:20px 0 24px;padding:0 0 20px;border-bottom:1px solid var(--border)}.quality-history .section-head{margin:0 0 14px;gap:12px}.range-control{display:flex;padding:3px;background:var(--surface2);border-radius:9px;gap:2px}.range-control button{padding:4px 8px;border:0;border-radius:6px;background:transparent;font-size:var(--text-caption)}.range-control button.selected{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px #0001}.history-series{padding:12px 0}.history-series+.history-series{border-top:1px solid var(--border)}.history-series svg{display:block;width:100%;height:100px;color:var(--color-accent)}.history-caption{display:flex;justify-content:space-between;gap:8px;font-size:var(--text-caption)}.history-legend{display:flex;gap:12px;margin-top:8px;font-size:var(--text-caption);color:var(--muted)}.history-legend span::before{content:'';display:inline-block;margin-right:5px;width:7px;height:7px;border-radius:var(--radius-round);background:var(--color-series-1)}.quality-history .footnote{line-height:var(--leading-body);margin-top:10px}.hero .history-link{color:#c6d2e9;border:0;background:transparent;padding:0;font-size:var(--text-sm);text-align:left}
+
+.history-legend .history-tcp::before{background:var(--color-series-2)}.history-legend .history-proxy::before{background:var(--color-series-3)}
+
+.background-task{display:block;width:100%;padding:12px 0 0;margin-top:11px;border:0;border-top:1px solid var(--border);border-radius:0;text-align:left;background:transparent;font-size:var(--text-sm)}.background-task span,.background-task small{display:block;overflow:hidden;text-overflow:ellipsis}.background-task small{color:var(--accent);font-size:var(--text-caption);margin-top:3px}
+
+body.modal-open{overflow:hidden}
