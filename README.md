@@ -24,13 +24,13 @@ Windows 桌面通道与分流管理项目，包含 PowerShell、C#、Python、We
 | `design-handoff/` | 品牌图标与设计交接资料 |
 | `docs/` | GitHub 入门、构建方法与脱敏说明 |
 
-`releases/` 是源码目录。GitHub 页面右侧的 **Releases** 是 GitHub 的发行包功能，两者不同；此次没有发布可直接安装的软件包。
+`releases/` 是源码目录。**可直接安装的完整包在 [Releases](https://github.com/weixiaochuchen618-debug/TradeChannel/releases) 页**：`v0.23.4` 提供 `TradeChannel-0.23.4-windows-x64-preview.zip`（32,818,825 字节）与同名 `.sha256`。源码树本身不含可执行文件。
 
 ## 使用与构建
 
-运行环境是 Windows x64、Windows PowerShell 5.1 和 .NET Framework 4.8。网络及安装操作需要管理员权限。
+本仓库的源码树排除了可执行文件、第三方 DLL、安装器和压缩包，安装包只作为 Releases 附件发布。运行环境是 Windows x64、Windows PowerShell 5.1 和 .NET Framework 4.8。网络及安装操作需要管理员权限。
 
-本仓库中的可执行文件、第三方 DLL、安装器、压缩包和个人运行配置已排除。下载源码 ZIP 后不能直接双击运行，需要先按 [源码构建说明](docs/源码构建说明.md) 准备固定版本的依赖，再构建完整包。
+需要自己从源码构建时，先按 [源码构建说明](docs/源码构建说明.md) 准备固定版本的依赖，再构建完整包。直接使用则下载 Releases 中的 ZIP，解压后运行 `TradeChannel.exe` 安装到 `C:\tradechannel`。
 
 当前版本用户指引：[新手部署指南](releases/0.23.4/新手部署指南.md)、[Linux 部署指南](releases/0.23.4/Linux部署指南.md)、[更新说明](releases/0.23.4/更新说明.md)。文档中的版本状态和工作区报告链接只作为背景；原始现场报告含私有运行信息，没有上传。
 
